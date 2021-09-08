@@ -5,6 +5,19 @@
 #include <memory>
 
 namespace pattern {
+    
+namespace {
+template<typename C, bool has_class_name = std::is_same_v<decltype(C::type_name()),std::string>>
+    struct traits {
+        static std::string name() { return C::type_name(); }
+    };
+
+    template<typename C>
+    struct traits<C,false> {
+        static std::string name() { return typeid(C).name(); }  
+    };
+}
+
 
 // - This works with shared_ptr (which I mostly use) although it would be trivial 
 //   to define a new version based on unique_ptr
@@ -62,16 +75,6 @@ public:
     }
 };
 
-template<typename C, bool has_class_name = std::is_same_v<decltype(C::type_name()),std::string>>
-struct registration {
-    static std::string name() { return C::type_name(); }
-};
-
-template<typename C>
-struct registration<C,false> {
-    static std::string name() { return typeid(C).name(); }  
-};
-
 template<typename Derived, typename Base>
 class SelfRegisteringClass : public Base {
     class Constructor : public SelfRegisteringFactory<Base>::Constructor {
@@ -81,7 +84,7 @@ class SelfRegisteringClass : public Base {
 public:
     inline static Constructor constructor;
     inline static bool is_registered = 
-        SelfRegisteringFactory<Base>::register_constructor(registration<Derived>::name(),&constructor);
+        SelfRegisteringFactory<Base>::register_constructor(traits<Derived>::name(),&constructor);
         
     SelfRegisteringClass() { is_registered; } //This is so the template does not miss it. Cheap trick.
     virtual ~SelfRegisteringClass() {} 

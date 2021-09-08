@@ -13,4 +13,3 @@ public:
     static std::string type_name() { return "circle"; }
 };
 
-//REGISTER_CLASS(Circle,Shape);
