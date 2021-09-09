@@ -5,6 +5,9 @@
 
 int main(int argc, char** argv) {
     Shape shape = Circle(2.0);
+    std::cout<<shape.area()<<" ";
+    shape = Rectangle(1.0,2.0);
+    std::cout<<shape.area()<<std::endl;
     
     std::list<Shape> shapes;
     shapes.push_back(Circle(2.0));
