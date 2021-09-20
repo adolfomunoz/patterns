@@ -7,19 +7,35 @@ namespace pattern {
 namespace {
 
 template <std::size_t Index, typename Tuple, typename Functor>
-auto tuple_at(const Tuple& tpl, const Functor& func) -> void {
+auto tuple_at_const(const Tuple& tpl, const Functor& func) -> void {
     const auto& v = std::get<Index>(tpl);
     func(v);
 };
 
+template <std::size_t Index, typename Tuple, typename Functor>
+auto tuple_at(Tuple& tpl, const Functor& func) -> void {
+    auto& v = std::get<Index>(tpl);
+    func(v);
+};
+
 template <typename Tuple, typename Functor, std::size_t Index = 0>
-auto tuple_for_each(const Tuple& tpl, const Functor& f) -> void {
+auto tuple_for_each_const(const Tuple& tpl, const Functor& f) -> void {
+    constexpr auto tuple_size = std::tuple_size_v<Tuple>;
+    if constexpr(Index < tuple_size) {
+        tuple_at<Index>(tpl,f);
+        tuple_for_each_const<Tuple, Functor, Index+1>(tpl, f);
+    }
+}
+
+template <typename Tuple, typename Functor, std::size_t Index = 0>
+auto tuple_for_each(Tuple& tpl, const Functor& f) -> void {
     constexpr auto tuple_size = std::tuple_size_v<Tuple>;
     if constexpr(Index < tuple_size) {
         tuple_at<Index>(tpl,f);
         tuple_for_each<Tuple, Functor, Index+1>(tpl, f);
     }
 }
+
 }
 
 /**
@@ -40,6 +56,10 @@ public:
     bool operator>(const Self& that)  const { return static_cast<const Self*>(this)->reflect()>that.reflect();  }
     bool operator<=(const Self& that) const { return static_cast<const Self*>(this)->reflect()<=that.reflect(); }
     bool operator>=(const Self& that) const { return static_cast<const Self*>(this)->reflect()>=that.reflect(); }
+    
+    auto const_reflect() const { 
+        return const_cast<Self*>(static_cast<const Self*>(this))->reflect(); 
+    }
 };
 
 namespace {
@@ -54,8 +74,15 @@ namespace {
 
 template<typename T>
 auto operator<<(std::ostream& os, const T& v) -> std::enable_if_t<is_reflectable_v<T>, std::ostream&> {
-    tuple_for_each(v.reflect(), [&os](const auto& attribute) { os << attribute << " "; });
+    tuple_for_each_const(v.const_reflect(), [&os](const auto& attribute) { os << attribute << " "; });
     return os;
+}
+
+template<typename T>
+auto operator>>(std::istream& is, T& v) -> std::enable_if_t<is_reflectable_v<T>, std::istream&> {
+    auto refl = v.reflect();
+    tuple_for_each(refl, [&is](auto& attribute) { is >> attribute; });
+    return is;
 }
     
 
