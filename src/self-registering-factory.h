@@ -3,21 +3,10 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include "type-traits.h"
 
 namespace pattern {
-    
-namespace {
-template<typename C, bool has_class_name = std::is_same_v<decltype(C::type_name()),std::string>>
-    struct traits {
-        static std::string name() { return C::type_name(); }
-    };
-
-    template<typename C>
-    struct traits<C,false> {
-        static std::string name() { return typeid(C).name(); }  
-    };
-}
-
+   
 
 // - This works with shared_ptr (which I mostly use) although it would be trivial 
 //   to define a new version based on unique_ptr
@@ -84,26 +73,9 @@ class SelfRegisteringClass : public Base {
 public:
     inline static Constructor constructor;
     inline static bool is_registered = 
-        SelfRegisteringFactory<Base>::register_constructor(traits<Derived>::name(),&constructor);
+        SelfRegisteringFactory<Base>::register_constructor(type_traits<Derived>::name(),&constructor);
         
     SelfRegisteringClass() { is_registered; } //This is so the template does not miss it. Cheap trick.
     virtual ~SelfRegisteringClass() {} 
 };
-
-
-/** We preffer the above approach because it does not imply macros
-template<typename Derived, typename Base>
-class SpecificConstructor : public SelfRegisteringFactory<Base>::Constructor {
-    public:
-        Base* make() const override { return new Derived; }
-};
-
-};
-
-#define REGISTER_CLASS(Derived,Base) \
-namespace registration_of_##Derived##_in_##Base { \
-inline pattern::SpecificConstructor<Derived,Base> constructor; \
-inline const bool is_registered = pattern::SelfRegisteringFactory<Base>::register_constructor(pattern::registration<Derived>::name(),&constructor); \
-}\
-**/
 
