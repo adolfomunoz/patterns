@@ -2,8 +2,8 @@
 #include <tuple>
 #include <iostream>
 #include <string>
-#include <sstream>
 #include "type-traits.h"
+#include "xml.h"
 
 namespace pattern {
 
@@ -41,17 +41,13 @@ auto tuple_for_each(Tuple& tpl, const Functor& f) -> void {
 
 template <std::size_t Index, typename Refl>
 const char* attribute_name(const Refl& r, 
-        std::enable_if_t<
-            !std::is_same_v<decltype(std::get<Index>(std::declval<Refl>().reflect_names())),
-                const char*>, int > = 0) {
+        std::enable_if_t<std::tuple_size_v<decltype(std::declval<Refl>().reflect_names())> <= Index, int> sfinae = 0) {
     return "";   
 }
 
 template <std::size_t Index, typename Refl>
 const char* attribute_name(const Refl& r, 
-        std::enable_if_t<
-            std::is_same_v<decltype(std::get<Index>(std::declval<Refl>().reflect_names())),
-                const char*>, int > = 0) {
+        std::enable_if_t<! (std::tuple_size_v<decltype(std::declval<Refl>().reflect_names())> <= Index), int> sfinae = 0) {
     return std::get<Index>(r.reflect_names());;   
 }
 
@@ -82,27 +78,22 @@ public:
     
 protected:  
     template<std::size_t Index>
-    std::string xml_attribute(const std::string& prefix = "") const {
-        std::stringstream sstr;
-        sstr<<prefix<<"<"<<type_traits<decltype(std::get<Index>(const_reflect()))>::name()<<" ";
-        if (std::string a = attribute_name<Index>(static_cast<const Self&>(*this)); a != "")
-            sstr<<"name=\""<<a<<"\" ";
-        sstr<<"value=\""<<std::get<Index>(const_reflect())<<"\" />\n";
-        return sstr.str();
-    }
-    
-    template<std::size_t Index>
     std::string xml_attributes(const std::string& prefix = "") const {
         std::stringstream sstr;
         constexpr std::size_t n = std::tuple_size_v<decltype(const_reflect())>;
-        if constexpr (Index < n) sstr<<xml_attribute<Index>(prefix)<<xml_attributes<Index+1>(prefix);
+        if constexpr (Index < n) {
+            sstr<<pattern::xml(std::get<Index>(const_reflect()),attribute_name<Index>(static_cast<const Self&>(*this)),prefix);
+            sstr<<xml_attributes<Index+1>(prefix);
+        }
         return sstr.str();
     }
 
 public:
-    std::string xml(const std::string& prefix = "") {
+    std::string xml(const std::string& name = "", const std::string& prefix = "") const {
         std::stringstream sstr;
-        sstr<<prefix<<"<"<<type_traits<Self>::name()<<">\n";
+        sstr<<prefix<<"<"<<type_traits<Self>::name();
+        if (name != "") sstr<<"name=\""<<name<<"\" ";
+        sstr<<">\n";
         sstr<<xml_attributes<0>(prefix+"   ");
         sstr<<prefix<<"</"<<type_traits<Self>::name()<<">\n";
         return sstr.str();
