@@ -1,5 +1,6 @@
 #pragma once
 #include "type-traits.h"
+#include "../ext/rapidxml/rapidxml.hpp"
 #include <sstream>
 
 namespace pattern {
@@ -38,7 +39,32 @@ std::string xml(const T& t, const std::string& name = "", const std::string& pre
     if (name != "") sstr<<"name=\""<<name<<"\" ";
     sstr<<"value=\""<<t<<"\" />\n";
     return sstr.str();
-}      
+}
+
+template<typename T>
+struct XML {
+    static void load(T& t, rapidxml::xml_node<>* node) {
+        rapidxml::xml_node<>* found = node->first_node(type_traits<T>::name());
+        if (found) {
+            rapidxml::xml_attribute<>* value = found->first_attribute("value");
+            if (value) {
+                std::string str(value->value(), value->value_size()); 
+                std::istringstream ss(str);
+                ss>>t;
+            }
+        }
+    } 
+
+    static void load(T& t, const std::string& xml) {
+        std::string copy(xml);
+        rapidxml::xml_document<> doc;
+        doc.parse<0>(&copy[0]);
+        load(t,&doc);
+    }
+};
+
+template<typename T>
+void load_xml(T& t, const std::string& xml) { XML<T>::load(t,xml); }
 
 
 }

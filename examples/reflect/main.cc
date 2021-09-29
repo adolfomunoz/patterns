@@ -12,4 +12,9 @@ int main() {
     
     Transformed g(3,-2,Rectangle(5,5));
     std::cout<<g.xml()<<std::endl;
+
+    int i;
+    pattern::load_xml(i,"<integer value=\"3\"/>");
+    std::cout<<i<<"\n";
+    
 };
