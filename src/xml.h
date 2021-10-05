@@ -43,11 +43,14 @@ std::string xml(const T& t, const std::string& name = "", const std::string& pre
 
 template<typename T>
 struct XML {
-    static void load(T& t, rapidxml::xml_node<>* node) {
+    static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
         rapidxml::xml_node<>* found = node->first_node(type_traits<T>::name());
         if (found) {
             rapidxml::xml_attribute<>* value = found->first_attribute("value");
-            if (value) {
+            rapidxml::xml_attribute<>* name = found->first_attribute("name");
+            if ( (value) && 
+                 (att_name.empty() || (
+                   (name) && (att_name == std::string(name->value(),name->value_size())))) ) {
                 std::string str(value->value(), value->value_size()); 
                 std::istringstream ss(str);
                 ss>>t;
@@ -55,11 +58,11 @@ struct XML {
         }
     } 
 
-    static void load(T& t, const std::string& xml) {
+    static void load(T& t, const std::string& xml, const std::string& name = "") {
         std::string copy(xml);
         rapidxml::xml_document<> doc;
         doc.parse<0>(&copy[0]);
-        load(t,&doc);
+        load(t,&doc,name);
     }
 };
 
