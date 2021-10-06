@@ -9,36 +9,6 @@ namespace pattern {
 
 namespace {
 
-template <std::size_t Index, typename Tuple, typename Functor>
-auto tuple_at_const(const Tuple& tpl, const Functor& func) -> void {
-    const auto& v = std::get<Index>(tpl);
-    func(v);
-};
-
-template <std::size_t Index, typename Tuple, typename Functor>
-auto tuple_at(Tuple& tpl, const Functor& func) -> void {
-    auto& v = std::get<Index>(tpl);
-    func(v);
-};
-
-template <typename Tuple, typename Functor, std::size_t Index = 0>
-auto tuple_for_each_const(const Tuple& tpl, const Functor& f) -> void {
-    constexpr auto tuple_size = std::tuple_size_v<Tuple>;
-    if constexpr(Index < tuple_size) {
-        tuple_at<Index>(tpl,f);
-        tuple_for_each_const<Tuple, Functor, Index+1>(tpl, f);
-    }
-}
-
-template <typename Tuple, typename Functor, std::size_t Index = 0>
-auto tuple_for_each(Tuple& tpl, const Functor& f) -> void {
-    constexpr auto tuple_size = std::tuple_size_v<Tuple>;
-    if constexpr(Index < tuple_size) {
-        tuple_at<Index>(tpl,f);
-        tuple_for_each<Tuple, Functor, Index+1>(tpl, f);
-    }
-}
-
 template <std::size_t Index, typename Refl>
 const char* attribute_name(const Refl& r, 
         std::enable_if_t<std::tuple_size_v<decltype(std::declval<Refl>().reflect_names())> <= Index, int> sfinae = 0) {
