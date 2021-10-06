@@ -76,15 +76,35 @@ public:
         return const_cast<Self*>(static_cast<const Self*>(this))->reflect(); 
     }
     
+    //Functor is a function with two parameters: std::string (name) and T& attribute.
+    template<typename Functor, std::size_t Index = 0>
+    void for_each_attribute(const Functor& f) {
+        constexpr std::size_t n = std::tuple_size_v<decltype(const_reflect())>;        
+        if constexpr (Index < n) {
+            f(attribute_name<Index>(static_cast<Self&>(*this)),
+              std::get<Index>(static_cast<Self*>(this)->reflect()));
+            for_each_attribute<Functor,Index+1>(f);
+        }
+    }
+    
+    //Functor is a function with two parameters: std::string (name) and const T& attribute.
+    template<typename Functor, std::size_t Index = 0>
+    void for_each_attribute(const Functor& f) const {
+        constexpr std::size_t n = std::tuple_size_v<decltype(const_reflect())>;        
+        if constexpr (Index < n) {
+            f(attribute_name<Index>(static_cast<const Self&>(*this)),
+              std::get<Index>(const_reflect()));
+            for_each_attribute<Functor,Index+1>(f);
+        }
+    }
+    
 protected:  
     template<std::size_t Index>
     std::string xml_attributes(const std::string& prefix = "") const {
         std::stringstream sstr;
-        constexpr std::size_t n = std::tuple_size_v<decltype(const_reflect())>;
-        if constexpr (Index < n) {
-            sstr<<pattern::xml(std::get<Index>(const_reflect()),attribute_name<Index>(static_cast<const Self&>(*this)),prefix);
-            sstr<<xml_attributes<Index+1>(prefix);
-        }
+        for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& attribute) {
+            sstr<<pattern::xml(attribute,name,prefix);
+        });
         return sstr.str();
     }
 
