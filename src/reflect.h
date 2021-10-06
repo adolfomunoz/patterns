@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include "type-traits.h"
-#include "xml.h"
 
 namespace pattern {
 
@@ -67,38 +66,16 @@ public:
             for_each_attribute<Functor,Index+1>(f);
         }
     }
-    
-protected:  
-    template<std::size_t Index>
-    std::string xml_attributes(const std::string& prefix = "") const {
-        std::stringstream sstr;
-        for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& attribute) {
-            sstr<<pattern::xml(attribute,name,prefix);
-        });
-        return sstr.str();
-    }
-
-public:
-    std::string xml(const std::string& name = "", const std::string& prefix = "") const {
-        std::stringstream sstr;
-        sstr<<prefix<<"<"<<type_traits<Self>::name();
-        if (name != "") sstr<<"name=\""<<name<<"\" ";
-        sstr<<">\n";
-        sstr<<xml_attributes<0>(prefix+"   ");
-        sstr<<prefix<<"</"<<type_traits<Self>::name()<<">\n";
-        return sstr.str();
-    }   
 };
 
-namespace {
-    template<typename T>
-    struct is_reflectable {
-        static constexpr bool value = std::is_base_of_v<Reflectable<T>,T>;
-    };
+template<typename T>
+struct is_reflectable {
+    static constexpr bool value = std::is_base_of_v<Reflectable<T>,T>;
+};
 
-    template<typename T>
-    inline constexpr bool is_reflectable_v = is_reflectable<T>::value; 
-}
+template<typename T>
+inline constexpr bool is_reflectable_v = is_reflectable<T>::value; 
+
 
 template<typename T>
 auto operator<<(std::ostream& os, const T& v) -> std::enable_if_t<is_reflectable_v<T>, std::ostream&> {

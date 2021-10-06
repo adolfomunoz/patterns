@@ -1,10 +1,12 @@
 #pragma once
 #include "type-traits.h"
+#include "reflect.h"
 #include "../ext/rapidxml/rapidxml.hpp"
 #include <sstream>
 
 namespace pattern {
     
+/*
 namespace {
     // SFINAE test
     template <typename T>
@@ -40,34 +42,88 @@ std::string xml(const T& t, const std::string& name = "", const std::string& pre
     sstr<<"value=\""<<t<<"\" />\n";
     return sstr.str();
 }
+*/
 
 template<typename T>
+struct XMLSearch {
+    static rapidxml::xml_node<>* find(rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        if (!node) return nullptr;
+        rapidxml::xml_node<>* found = nullptr; 
+        for (found = node->first_node(type_traits<T>::name()); 
+             found; 
+             found = found->next_sibling(type_traits<T>::name())) {
+        
+            if (att_name.empty()) return found;
+            else {
+                rapidxml::xml_attribute<>* name = found->first_attribute("name");
+                if ((name) && (att_name == std::string(name->value(),name->value_size())))
+                    return found;
+            }
+        }
+        return nullptr;
+    }
+};
+
+template<typename T, bool r = is_reflectable_v<T>>
 struct XML {
     static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
-        rapidxml::xml_node<>* found = node->first_node(type_traits<T>::name());
+        rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
         if (found) {
             rapidxml::xml_attribute<>* value = found->first_attribute("value");
-            rapidxml::xml_attribute<>* name = found->first_attribute("name");
-            if ( (value) && 
-                 (att_name.empty() || (
-                   (name) && (att_name == std::string(name->value(),name->value_size())))) ) {
+            if (value) {
                 std::string str(value->value(), value->value_size()); 
                 std::istringstream ss(str);
                 ss>>t;
             }
         }
     } 
-
-    static void load(T& t, const std::string& xml, const std::string& name = "") {
-        std::string copy(xml);
-        rapidxml::xml_document<> doc;
-        doc.parse<0>(&copy[0]);
-        load(t,&doc,name);
+    
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+        std::stringstream sstr;
+        sstr<<prefix<<"<"<<type_traits<T>::name()<<" ";
+        if (name != "") sstr<<"name=\""<<name<<"\" ";
+        sstr<<"value=\""<<t<<"\" />\n";
+        return sstr.str();
     }
 };
 
 template<typename T>
-void load_xml(T& t, const std::string& xml) { XML<T>::load(t,xml); }
+struct XML<T,true> {
+    static void load(Reflectable<T>& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
+        if (found) {
+            t.for_each_attribute([&found] (const std::string& name, auto& value) {
+                XML<std::decay_t<decltype(value)>>::load(value,found,name);
+            });                      
+        }
+    }
+
+    static std::string get(const Reflectable<T>& t, const std::string& name = "", const std::string& prefix = "") {
+        std::stringstream sstr;
+        sstr<<prefix<<"<"<<type_traits<T>::name();
+        if (name != "") sstr<<" name=\""<<name<<"\" ";
+        sstr<<">\n";
+       
+        t.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
+            sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
+        });
+        sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
+        return sstr.str();
+    }    
+};
+
+template<typename T>
+void load_xml(T& t, const std::string& xml) { 
+    std::string copy(xml);
+    rapidxml::xml_document<> doc;
+    doc.parse<0>(&copy[0]);
+    XML<T>::load(t,&doc);    
+}
+
+template<typename T>
+std::string xml(const T& t) {
+    return XML<T>::get(t);
+}
 
 
 }
