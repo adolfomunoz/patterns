@@ -3,6 +3,8 @@
 #include "reflect.h"
 #include "../ext/rapidxml/rapidxml.hpp"
 #include <sstream>
+#include <vector>
+#include <list>
 
 namespace pattern {
     
@@ -64,7 +66,7 @@ struct XMLSearch {
     }
 };
 
-template<typename T, bool r = is_reflectable_v<T>>
+template<typename T, typename Enable = void>
 struct XML {
     static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
         rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
@@ -88,7 +90,7 @@ struct XML {
 };
 
 template<typename T>
-struct XML<T,true> {
+struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
     static void load(Reflectable<T>& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
         rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
         if (found) {
@@ -110,6 +112,36 @@ struct XML<T,true> {
         sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
         return sstr.str();
     }    
+};
+
+namespace {
+    template<typename T>
+    struct is_collection_impl {
+        static constexpr bool value = false;
+    };
+    
+    template<typename T>
+    struct is_collection_impl<std::list<T>> {
+        static constexpr bool value = true;
+    };
+    
+    template<typename T>
+    struct is_collection_impl<std::vector<T>> {
+        static constexpr bool value = true;
+    };
+    
+    template<typename T>
+    struct is_collection {
+        static constexpr bool value = is_collection_impl<std::decay_t<T>>::value;
+    };
+    
+    template<typename T>
+    inline constexpr bool is_collection_v = is_collection<T>::value;
+}
+
+template<typename T>
+struct XML<T, std::enable_if_t<is_collection_v<T>>> {
+    //TODO (still)
 };
 
 template<typename T>
