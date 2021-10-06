@@ -132,14 +132,19 @@ namespace {
 
 template<typename T>
 auto operator<<(std::ostream& os, const T& v) -> std::enable_if_t<is_reflectable_v<T>, std::ostream&> {
-    tuple_for_each_const(v.const_reflect(), [&os](const auto& attribute) { os << attribute << " "; });
+    v.for_each_attribute([&os] (const std::string& name, const auto& value) {
+        //if (!name.empty()) os<<name<<"=";
+        os<<value<<" ";
+    });
     return os;
 }
 
 template<typename T>
 auto operator>>(std::istream& is, T& v) -> std::enable_if_t<is_reflectable_v<T>, std::istream&> {
-    auto refl = v.reflect();
-    tuple_for_each(refl, [&is](auto& attribute) { is >> attribute; });
+    v.for_each_attribute([&is] (const std::string& name, auto& value) {
+        //if (!name.empty()) os<<name<<"=";
+        is>>value;
+    });
     return is;
 }
     
