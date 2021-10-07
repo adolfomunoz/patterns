@@ -4,12 +4,12 @@
 #include "shape.h"
 #include <cmath>
 
-class Rectangle: public SelfRegisteringClass<Rectangle,Shape> {
+class Rectangle: public pattern::SelfRegisteringClass<Rectangle,Shape> {
     float width,height;
 public:
     Rectangle(float width = 1.0f, float height = 1.0f) : width(width), height(height) {}
     float area() const override { return width*height; }
 
-    static std::string type_name() { return "rectangle"; }
+    static const char* type_name() { return "rectangle"; }
 };
 

@@ -74,8 +74,13 @@ public:
     inline static Constructor constructor;
     inline static bool is_registered = 
         SelfRegisteringFactory<Base>::register_constructor(type_traits<Derived>::name(),&constructor);
-        
+       
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-value"
     SelfRegisteringClass() { is_registered; } //This is so the template does not miss it. Cheap trick.
+    #pragma GCC diagnostic pop
     virtual ~SelfRegisteringClass() {} 
 };
+
+}
 
