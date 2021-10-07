@@ -77,6 +77,13 @@ struct XML {
                 std::istringstream ss(str);
                 ss>>t;
             }
+        } else if (!att_name.empty()) {
+            rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
+            if (att) {
+                std::string str(att->value(), att->value_size()); 
+                std::istringstream ss(str);
+                ss>>t;
+            }
         }
     } 
     

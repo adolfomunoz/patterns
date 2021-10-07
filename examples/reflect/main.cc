@@ -24,6 +24,8 @@ int main() {
             <float name=\"width\" value=\"3.0\"/>\
          </rectangle>");
     std::cout<<pattern::xml(rect)<<std::endl;
+    pattern::load_xml(rect,"<rectangle width=\"1.0\" height=\"3.0\"/>");
+    std::cout<<pattern::xml(rect)<<std::endl;
     pattern::load_xml(g,
         "<transformed>\
             <rectangle>\
