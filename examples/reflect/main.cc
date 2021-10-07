@@ -33,4 +33,11 @@ int main() {
             </rectangle>\
         </transformed>");
     std::cout<<pattern::xml(g)<<std::endl;
+    
+    /*** LISTS ***/
+    std::list<float> l{1.0f,2.0f,3.0f};
+    std::cout<<pattern::xml(l)<<std::endl;
+    pattern::load_xml(l,
+        "<float value=\"-1.0\" /><float value=\"-2.0\" /><float value=\"-3.0\" />");
+    std::cout<<pattern::xml(l)<<std::endl;
 };

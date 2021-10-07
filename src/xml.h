@@ -148,7 +148,35 @@ namespace {
 
 template<typename T>
 struct XML<T, std::enable_if_t<is_collection_v<T>>> {
-    //TODO (still)
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+        std::stringstream sstr;
+        for (const auto& item : t) {
+            sstr<<XML<std::decay_t<decltype(item)>>::get(item,name,prefix);
+        }
+        return sstr.str();
+    } 
+    
+    static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        if (node) {
+            t.clear();
+            rapidxml::xml_node<>* found = nullptr; 
+            for (found = node->first_node(type_traits<typename T::value_type>::name()); 
+                 found; 
+                 found = found->next_sibling(type_traits<typename T::value_type>::name())) {
+                
+                rapidxml::xml_attribute<>* name = found->first_attribute("name");
+                if ((att_name.empty()) || 
+                    ((name) && (att_name == std::string(name->value(),name->value_size())))) {
+                    
+                    typename T::value_type value;
+                    rapidxml::xml_document<> tmpdoc;
+                    tmpdoc.append_node(tmpdoc.clone_node(found));
+                    XML<typename T::value_type>::load(value,&tmpdoc,att_name);
+                    t.push_back(value);
+                }
+            }
+        }
+    }    
 };
 
 template<typename T>
