@@ -34,12 +34,15 @@ class Reflectable {
 //    vv This does not work yet. Should find a way to make it work.
 //    static_assert(std::tuple_size_v<decltype(std::declval<Self>().reflect())> > 0, "A reflectable class needs to have the reflect() method returning a tuple");
 public:
+//We remove these operators here here because it might get messy when inheritance later on...
+/**
     bool operator==(const Self& that) const { return static_cast<const Self*>(this)->reflect()==that.reflect(); }
     bool operator!=(const Self& that) const { return static_cast<const Self*>(this)->reflect()!=that.reflect(); }
     bool operator<(const Self& that)  const { return static_cast<const Self*>(this)->reflect()<that.reflect();  }
     bool operator>(const Self& that)  const { return static_cast<const Self*>(this)->reflect()>that.reflect();  }
     bool operator<=(const Self& that) const { return static_cast<const Self*>(this)->reflect()<=that.reflect(); }
     bool operator>=(const Self& that) const { return static_cast<const Self*>(this)->reflect()>=that.reflect(); }
+**/
     
     auto const_reflect() const { 
         return const_cast<Self*>(static_cast<const Self*>(this))->reflect(); 
