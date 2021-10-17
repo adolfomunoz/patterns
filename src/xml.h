@@ -188,6 +188,13 @@ void load_xml(T& t, const std::string& xml) {
 }
 
 template<typename T>
+T make_from_xml(const std::string& xml) {
+    T t; //Must be default constructible
+    load_xml(t,xml);
+    return t;
+}
+
+template<typename T>
 std::string xml(const T& t) {
     return XML<T>::get(t);
 }
