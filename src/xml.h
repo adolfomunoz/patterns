@@ -1,6 +1,7 @@
 #pragma once
 #include "type-traits.h"
 #include "reflect.h"
+#include "reflect-inheritance.h"
 #include "../ext/rapidxml/rapidxml.hpp"
 #include <sstream>
 #include <vector>
@@ -103,7 +104,12 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         if (found) {
             t.for_each_attribute([&found] (const std::string& name, auto& value) {
                 XML<std::decay_t<decltype(value)>>::load(value,found,name);
-            });                      
+            });
+            if constexpr (has_reflectable_inheritance_v<T>) {
+                t.for_all_base_classes([&node,&att_name] (const auto& a) {
+                    if constexpr (is_reflectable_v<decltype(a)>) XML<std::decay_t<decltype(a)>>::load(a,node,att_name);
+                    });      
+            }             
         }
     }
 
@@ -116,6 +122,14 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         t.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
             sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
         });
+        if constexpr (has_reflectable_inheritance_v<T>) {
+            t.for_all_base_classes([&sstr,&prefix] (const auto& a) {
+                if constexpr (is_reflectable_v<decltype(a)>) 
+                    a.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
+                        sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
+                    });
+            });      
+        }  
         sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
         return sstr.str();
     }    
