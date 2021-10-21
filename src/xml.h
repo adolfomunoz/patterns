@@ -99,7 +99,7 @@ struct XML {
 
 template<typename T>
 struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
-    static void load(Reflectable<T>& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+    static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
         rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
         if (found) {
             t.for_each_attribute([&found] (const std::string& name, auto& value) {
@@ -113,13 +113,13 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         }
     }
 
-    static std::string get(const Reflectable<T>& t, const std::string& name = "", const std::string& prefix = "") {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
         std::stringstream sstr;
         sstr<<prefix<<"<"<<type_traits<T>::name();
         if (name != "") sstr<<" name=\""<<name<<"\" ";
         sstr<<">\n";
        
-        t.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
+        t.Reflectable<T>::for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
             sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
         });
         if constexpr (has_reflectable_inheritance_v<T>) {

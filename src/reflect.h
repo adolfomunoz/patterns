@@ -8,16 +8,39 @@ namespace pattern {
 
 namespace {
 
+template <typename> struct is_tuple: std::false_type {};
+template <typename ...T> struct is_tuple<std::tuple<T...>>: std::true_type {};
+
+template<typename C>
+struct has_reflect_names {
+private:
+    template<typename T>
+    static constexpr auto check(T*)
+    -> typename is_tuple<decltype(std::declval<T>().reflect_names())>::type;  // attempt to call it and see if the return type is correct
+
+    template<typename>
+    static constexpr std::false_type check(...);
+
+    typedef decltype(check<C>(0)) type;
+
+public:
+    static constexpr bool value = type::value;
+};
+
+template<typename T>
+inline constexpr bool has_reflect_names_v = has_reflect_names<T>::value; 
+
 template <std::size_t Index, typename Refl>
-const char* attribute_name(const Refl& r, 
-        std::enable_if_t<std::tuple_size_v<decltype(std::declval<Refl>().reflect_names())> <= Index, int> sfinae = 0) {
+const char* attribute_name(const Refl& r,std::enable_if_t<!has_reflect_names_v<Refl>, int> sfinae = 0) {
     return "";   
 }
 
 template <std::size_t Index, typename Refl>
-const char* attribute_name(const Refl& r, 
-        std::enable_if_t<! (std::tuple_size_v<decltype(std::declval<Refl>().reflect_names())> <= Index), int> sfinae = 0) {
-    return std::get<Index>(r.reflect_names());;   
+const char* attribute_name(const Refl& r,std::enable_if_t<has_reflect_names_v<Refl>, int> sfinae = 0) {
+    if constexpr (std::tuple_size_v<decltype(std::declval<Refl>().reflect_names())> > Index)
+        return std::get<Index>(r.reflect_names());
+    else
+        return "";
 }
 
 }
@@ -26,7 +49,7 @@ const char* attribute_name(const Refl& r,
  * Curiously Recurring Template Pattern
  * Self should have:
  *     - The method "reflect()" returning a tuple with references to all meaningful attributes.
- *     - Optionally: the method "attribute_names()" returning a tuple with strings that have attribute names.
+ *     - Optionally: the method "reflect_names()" returning a tuple with strings that have attribute names.
  *     - Optionally: the static method "type_name()" returning a string with the name of the type.
  **/
 template<typename Self>
