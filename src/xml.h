@@ -119,13 +119,13 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         if (name != "") sstr<<" name=\""<<name<<"\" ";
         sstr<<">\n";
        
-        t.Reflectable<T>::for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
+        for_each_attribute(t,[&sstr,&prefix] (const std::string& name, const auto& value) {
             sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
         });
         if constexpr (has_reflectable_inheritance_v<T>) {
             t.for_all_base_classes([&sstr,&prefix] (const auto& a) {
                 if constexpr (is_reflectable_v<decltype(a)>) 
-                    a.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
+                    for_each_attribute(a, [&sstr,&prefix] (const std::string& name, const auto& value) {
                         sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
                     });
             });      

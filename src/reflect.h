@@ -94,13 +94,61 @@ public:
     }
 };
 
+/**
 template<typename T>
 struct is_reflectable {
     static constexpr bool value = std::is_base_of_v<Reflectable<T>,T>;
 };
+**/
+
+template<typename C>
+struct is_reflectable {
+private:
+    template<typename T>
+    static constexpr auto check(T*)
+    -> typename is_tuple<decltype(std::declval<T>().reflect())>::type;  // attempt to call it and see if the return type is correct
+
+    template<typename>
+    static constexpr std::false_type check(...);
+
+    typedef decltype(check<C>(0)) type;
+
+public:
+    static constexpr bool value = type::value;
+};
 
 template<typename T>
 inline constexpr bool is_reflectable_v = is_reflectable<T>::value; 
+
+template<typename T>
+auto reflect(T& t, std::enable_if_t<is_reflectable_v<T>,int> dummy = 0) {
+    return t.reflect();
+}
+
+template<typename T>
+auto reflect(const T& t, std::enable_if_t<is_reflectable_v<T>,int> dummy = 0) {
+    return const_cast<T&>(t).reflect();
+}
+
+//Functor is a function with two parameters: std::string (name) and auto& attribute.
+template<typename T, typename Functor, std::size_t Index = 0>
+void for_each_attribute(T& t, const Functor& f, std::enable_if_t<is_reflectable_v<T>,int> dummy = 0) {
+    constexpr std::size_t n = std::tuple_size_v<decltype(reflect(t))>;        
+    if constexpr (Index < n) {
+        f(attribute_name<Index>(t),std::get<Index>(reflect(t)));
+        for_each_attribute<T,Functor,Index+1>(t,f);
+    }
+}
+
+//Functor is a function with two parameters: std::string (name) and const auto& attribute.
+template<typename T, typename Functor, std::size_t Index = 0>
+void for_each_attribute(const T& t, const Functor& f, std::enable_if_t<is_reflectable_v<T>,int> dummy = 0) {
+    constexpr std::size_t n = std::tuple_size_v<decltype(reflect(t))>;        
+    if constexpr (Index < n) {
+        f(attribute_name<Index>(t),std::get<Index>(reflect(t)));
+        for_each_attribute<T,Functor,Index+1>(t,f);
+    }
+}
 
 
 template<typename T>
