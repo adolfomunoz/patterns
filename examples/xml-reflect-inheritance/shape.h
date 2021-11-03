@@ -1,7 +1,7 @@
 #pragma once
 #include "../../src/reflect.h"
 
-class Shape : public pattern::Reflectable<Shape> {
+class Shape {
     float x, y;
 public:
     Shape(): x(0), y(0) {}
@@ -9,7 +9,6 @@ public:
     auto reflect() { return std::tie(x,y); }
     virtual float area() const = 0;
     static const char* type_name() { return "shape"; }
-
 };
 
 

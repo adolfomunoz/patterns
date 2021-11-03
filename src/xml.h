@@ -124,10 +124,12 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         });
         if constexpr (has_reflectable_inheritance_v<T>) {
             t.for_all_base_classes([&sstr,&prefix] (const auto& a) {
-                if constexpr (is_reflectable_v<decltype(a)>) 
-                    for_each_attribute(a, [&sstr,&prefix] (const std::string& name, const auto& value) {
+                if constexpr (is_reflectable_v<std::decay_t<decltype(a)>>) {
+                    for_each_attribute(a,[&sstr,&prefix] (const std::string& name, const auto& value) {
                         sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
                     });
+
+                    }
             });      
         }  
         sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
