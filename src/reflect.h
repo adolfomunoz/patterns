@@ -67,13 +67,25 @@ inline constexpr bool is_reflectable_v = is_reflectable<T>::value;
 
 /**
  * Bases are the superclasses of the base class.
- * This class is empty because it is going to be specialized in two cases:
- *    - Empty variadic template (no base classes)
- *    - At least one base.
- * It will provide the method "for_all_base_casses" which statically traverses all the base classes.
+ * This class is the spezialization for zero (empty) parameters (base classes).
+ * It will be specialized
+ * It rovides the method "for_all_base_casses" which statically traverses all the base classes.
  **/
 template<typename... Bases>
-class ReflectableInheritance {};  
+class ReflectableInheritance {
+public:
+    /**
+     * F is a function that can take a single parameter for any of the type of the bases.
+     **/
+    template<typename F>
+    void for_all_base_classes(const F& f) {}
+    
+    /**
+     * F is a function that can take a single parameter for any of the type of the bases.
+     **/
+    template<typename F>
+    void for_all_base_classes(const F& f) const {}       
+};  
 
 template<typename Base, typename... Bases>
 class ReflectableInheritance<Base,Bases...>: public Base, public ReflectableInheritance<Bases...> {
@@ -97,20 +109,26 @@ public:
     }    
 };
 
-class ReflectableInheritance<> {
+template<typename Base>
+class ReflectableInheritance<Base>: public Base {
 public:
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
      **/
     template<typename F>
-    void for_all_base_classes(const F& f) {}
+    void for_all_base_classes(const F& f) {
+        f(static_cast<Base&>(*this));
+    }
     
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
      **/
     template<typename F>
-    void for_all_base_classes(const F& f) const {}
+    void for_all_base_classes(const F& f) const {
+        f(static_cast<const Base&>(*this));
+    }    
 };
+
 
 /**
  * Curiously Recurring Template Pattern
@@ -140,8 +158,8 @@ public:
               std::get<Index>(static_cast<Self*>(this)->reflect()));
             for_each_attribute<Functor,Index+1>(f);
         } else if constexpr (Index == n) { //At the end we deal with the base classes
-            for_all_base_classes([] (auto& base) {
-                if constexpr (is_reflectable_v<decltype(base)>) 
+            this->for_all_base_classes([&f] (auto& base) {
+                if constexpr (is_reflectable_v<std::decay_t<decltype(base)>>) 
                     base.for_each_attribute(f);
             });
         }
@@ -156,8 +174,8 @@ public:
               std::get<Index>(const_reflect()));
             for_each_attribute<Functor,Index+1>(f);
         } else if constexpr (Index == n) { //At the end we deal with the base classes
-            for_all_base_classes([] (const auto& base) {
-                if constexpr (is_reflectable_v<decltype(base)>) 
+            this->for_all_base_classes([&f] (const auto& base) {
+                if constexpr (is_reflectable_v<std::decay_t<decltype(base)>>) 
                     base.for_each_attribute(f);
             });
         }
