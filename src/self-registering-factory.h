@@ -8,8 +8,7 @@
 namespace pattern {
    
 
-// - This works with shared_ptr (which I mostly use) although it would be trivial 
-//   to define a new version based on unique_ptr
+// - This works with all types of pointers but I will mostly use shared_ptr
 // - Subclasses must have empty constructors. How to change that? We will see...
 template<typename Base>
 class SelfRegisteringFactory {
@@ -64,16 +63,40 @@ public:
     }
 };
 
-template<typename Derived, typename Base>
-class SelfRegisteringClass : public Base {
+// vv Should never happen, it is specialized 
+template<typename Self, typename... Bases>
+class SelfRegisteringClass  {
+    virtual ~SelfRegisteringClass() {} 
+};
+
+template<typename Self, typename Base>
+class SelfRegisteringClass<Self,Base> : public Base {
     class Constructor : public SelfRegisteringFactory<Base>::Constructor {
     public:
-        Base* make() const override { return new Derived; }
+        Base* make() const override { return new Self; }
     };
 public:
     inline static Constructor constructor;
     inline static bool is_registered = 
-        SelfRegisteringFactory<Base>::register_constructor(type_traits<Derived>::name(),&constructor);
+        SelfRegisteringFactory<Base>::register_constructor(type_traits<Self>::name(),&constructor);
+       
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-value"
+    SelfRegisteringClass() { is_registered; } //This is so the template does not miss it. Cheap trick.
+    #pragma GCC diagnostic pop
+    virtual ~SelfRegisteringClass() {} 
+};
+
+template<typename Self, typename Base, typename... Bases>
+class SelfRegisteringClass<Self,Base,Bases...> : public Base, public SelfRegisteringClass<Self,Bases...> {
+    class Constructor : public SelfRegisteringFactory<Base>::Constructor {
+    public:
+        Base* make() const override { return new Self; }
+    };
+public:
+    inline static Constructor constructor;
+    inline static bool is_registered = 
+        SelfRegisteringFactory<Base>::register_constructor(type_traits<Self>::name(),&constructor);
        
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-value"
