@@ -4,13 +4,15 @@
 
 namespace pattern {
     
-template<typename Base>
+template<typename Base, typename Enable = void>
 class Pimpl : public Base {
 	std::shared_ptr<Base> base;
 protected:
     const std::shared_ptr<Base>& impl() const { return base; }
     
 public:
+    Pimpl() {}
+    
 	template<typename I, typename = std::enable_if_t<std::is_base_of_v<Base,I>>>
 	Pimpl(I&& impl) : 
         base(std::make_shared<std::decay_t<I>>(std::forward<I>(impl))) {}

@@ -8,7 +8,7 @@
 
 namespace pattern {
     
-/*
+
 namespace {
     // SFINAE test
     template <typename T>
@@ -25,26 +25,29 @@ namespace {
     public:
         static constexpr bool value = sizeof(test<T>(0)) == sizeof(YesType);
     };
+    template <typename T>
+    class has_load_xml
+    {
+    private:
+        typedef char YesType[1];
+        typedef char NoType[2];
 
-}
+        template <typename C> static YesType& test( decltype(&C::load_xml) ) ;
+        template <typename C> static NoType& test(...);
 
-template<typename T>
-std::string xml(const T& t, const std::string& name = "", const std::string& prefix = "",
-    std::enable_if_t<has_xml<T>::value,int> sfinae=0) {
+
+    public:
+        static constexpr bool value = sizeof(test<T>(0)) == sizeof(YesType);
+    };
     
-    return t.xml(name,prefix);
-}  
-
-template<typename T>
-std::string xml(const T& t, const std::string& name = "", const std::string& prefix = "", 
-    std::enable_if_t<!has_xml<T>::value,int> sfinae=0) {
-    std::stringstream sstr;
-    sstr<<prefix<<"<"<<type_traits<T>::name()<<" ";
-    if (name != "") sstr<<"name=\""<<name<<"\" ";
-    sstr<<"value=\""<<t<<"\" />\n";
-    return sstr.str();
+    template<typename T>
+    struct provides_xml {
+        static constexpr bool value = (has_xml<T>::value) && (has_load_xml<T>::value);
+    };
+    
+    template<typename T>
+    inline constexpr bool provides_xml_v = provides_xml<T>::value;
 }
-*/
 
 template<typename T>
 struct XMLSearch {
@@ -176,6 +179,17 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
                 }
             }
         }
+    }    
+};
+
+template<typename T>
+struct XML<T, std::enable_if_t<provides_xml_v<T>>> {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+        return t.xml(name,prefix);
+    } 
+    
+    static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        if (node) t.load_xml(node,att_name);
     }    
 };
 
