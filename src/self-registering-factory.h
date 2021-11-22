@@ -70,7 +70,7 @@ class SelfRegisteringClass  {
 };
 
 template<typename Self, typename Base>
-class SelfRegisteringClass<Self,Base> : public Base {
+class SelfRegisteringClass<Self,Base> : virtual public Base {
     class Constructor : public SelfRegisteringFactory<Base>::Constructor {
     public:
         Base* make() const override { return new Self; }
@@ -88,7 +88,7 @@ public:
 };
 
 template<typename Self, typename Base, typename... Bases>
-class SelfRegisteringClass<Self,Base,Bases...> : public Base, public SelfRegisteringClass<Self,Bases...> {
+class SelfRegisteringClass<Self,Base,Bases...> : virtual public Base, public SelfRegisteringClass<Self,Bases...> {
     class Constructor : public SelfRegisteringFactory<Base>::Constructor {
     public:
         Base* make() const override { return new Self; }

@@ -88,7 +88,7 @@ public:
 };  
 
 template<typename Base, typename... Bases>
-class ReflectableInheritance<Base,Bases...>: public Base, public ReflectableInheritance<Bases...> {
+class ReflectableInheritance<Base,Bases...>: virtual public Base, public ReflectableInheritance<Bases...> {
 public:
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
@@ -110,7 +110,7 @@ public:
 };
 
 template<typename Base>
-class ReflectableInheritance<Base>: public Base {
+class ReflectableInheritance<Base>: virtual public Base {
 public:
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
