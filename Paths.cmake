@@ -1,4 +1,4 @@
-####################################################################
+###################################################################
 # PATHS
 ####################################################################
 if (NOT EXECUTABLE_OUTPUT_PATH)
@@ -23,4 +23,4 @@ if (NOT IS_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ext)

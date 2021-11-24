@@ -19,12 +19,11 @@ int main(int argc, char** argv) {
     {
         Shape shape;
         pattern::load_xml(shape,
-        //shape.load_xml(
             "<shape type=\"rectangle\">\
                 <float name=\"height\" value=\"1.0\"/>\
                 <float name=\"width\" value=\"2.0\"/>\
              </shape>");
-        std::cout<<shape.xml()<<std::endl;
+        std::cout<<pattern::xml(shape)<<std::endl;
     }
 
 }

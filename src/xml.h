@@ -1,7 +1,7 @@
 #pragma once
 #include "type-traits.h"
 #include "reflect.h"
-#include "../ext/rapidxml/rapidxml.hpp"
+#include <rapidxml/rapidxml.hpp>
 #include <sstream>
 #include <vector>
 #include <list>
