@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/self-registering-reflect.h"
+#include "../../patterns.h"
 
 class ShapeBase : public pattern::SelfRegisteringReflectableBase {
 public:

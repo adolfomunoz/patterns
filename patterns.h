@@ -1,0 +1,5 @@
+#include "src/pimpl.h"
+#include "src/reflect.h"
+#include "src/self-registering-factory.h"
+#include "src/self-registering-reflect.h"
+#include "src/xml.h"

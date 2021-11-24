@@ -2,7 +2,7 @@
 
 #include "area.h"
 #include "perimeter.h"
-#include "../../src/reflect.h"
+#include "../../patterns.h"
 #include <cmath>
 
 class Rectangle: public pattern::Reflectable<Rectangle,Area,Perimeter> {

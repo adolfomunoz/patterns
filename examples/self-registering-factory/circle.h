@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/self-registering-factory.h"
+#include "../../patterns.h"
 #include "shape.h"
 #include <cmath>
 

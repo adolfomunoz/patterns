@@ -1,5 +1,5 @@
 #pragma once
-#include "../../src/reflect.h"
+#include "../../patterns.h"
 
 class Shape : public pattern::Reflectable<Shape> {
     float x, y;

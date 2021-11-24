@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/pimpl.h"
+#include "../../patterns.h"
 
 class ShapeBase {
 public:

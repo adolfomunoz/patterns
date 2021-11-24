@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/reflect.h"
+#include "../../patterns.h"
 
 class Rectangle : public pattern::Reflectable<Rectangle> {
     float width,height;
