@@ -16,4 +16,5 @@ add_executable(reflect-inheritance examples/reflect-inheritance/main.cc)
 add_executable(self-registering-factory examples/self-registering-factory/main.cc)
 add_executable(xml-reflect-inheritance examples/xml-reflect-inheritance/main.cc)
 add_executable(pimpl-reflect-inheritance examples/pimpl-reflect-inheritance/main.cc)
+add_executable(commandline examples/commandline/main.cc)
 

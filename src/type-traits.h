@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+#include <list>
 
 namespace pattern {
     
@@ -35,6 +37,27 @@ struct type_traits_impl<long,void> {
 template<typename C>
 struct type_traits : type_traits_impl<std::decay_t<C>> { };
 
+template<typename T>
+struct is_collection_impl {
+    static constexpr bool value = false;
+};
 
+template<typename T>
+struct is_collection_impl<std::list<T>> {
+    static constexpr bool value = true;
+};
+
+template<typename T>
+struct is_collection_impl<std::vector<T>> {
+    static constexpr bool value = true;
+};
+
+template<typename T>
+struct is_collection {
+    static constexpr bool value = is_collection_impl<std::decay_t<T>>::value;
+};
+
+template<typename T>
+inline constexpr bool is_collection_v = is_collection<T>::value;
 
 }

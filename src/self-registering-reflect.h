@@ -6,6 +6,7 @@
 #include "self-registering-factory.h"
 #include "reflect.h"
 #include "xml.h"
+#include "commandline.h"
 #include "pimpl.h"
 
 
@@ -18,6 +19,7 @@ public:
     virtual std::string xml_content(const std::string& prefix = "") const = 0;
     virtual void load_content(rapidxml::xml_node<>* node) = 0;
     virtual const char* object_type_name() const = 0;
+    virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
 };
 
 template<typename Self, typename... Bases>
@@ -40,6 +42,11 @@ public:
     const char* object_type_name() const override {
         return type_traits<Self>::name();
     }
+    
+    virtual void load_commandline_content(int argc, char**argv, const std::string& name) {
+        std::cerr<<"Loading content"<<std::endl;
+        CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
+    }
 };
 
 template<typename Base>
@@ -57,6 +64,9 @@ protected:
     }
     const char* object_type_name() const override {
         return this->impl()->object_type_name();
+    }
+    void load_commandline_content(int argc, char**argv, const std::string& name) override {
+        this->impl()->load_commandline_content(argc,argv,name);
     }
 
 public:
@@ -84,6 +94,27 @@ public:
             }
         }
     }
+    
+    void load_commandline(int argc, char** argv, const std::string& name = "") {
+        std::string type;
+        if (name.empty()) { //Load directly or by putting the type name in the command line
+            pattern::load_commandline(type,argc,argv,"type");
+            pattern::load_commandline(type,argc,argv,std::string(type_traits<Base>::name())+"-type");
+        } else {
+            pattern::load_commandline(type,argc,argv,name+"-type");                
+        }
+        if ((this->impl()) && (this->object_type_name() == type)) 
+            load_commandline_content(argc,argv,name);
+        else {
+            auto ptr = SelfRegisteringFactory<Base>::make_shared(type);
+            if (ptr) {
+                (*this) = ptr;
+                this->load_commandline_content(argc,argv,name);
+                if (name.empty()) this->load_commandline_content(argc,argv,std::string(type_traits<Base>::name()));
+            }
+        }
+    }    
+    
     
 /**
     void load_xml(const std::string& xml) { 

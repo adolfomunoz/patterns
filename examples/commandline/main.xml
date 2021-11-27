@@ -1,0 +1,7 @@
+<float name="distance" value="106.2"/>
+<integer value="13"/>
+<rectangle>
+    <float name="width" value="25"/>
+    <float name="height" value="15"/>
+</rectangle>
+<shape type="circle" radius="3.14"/>

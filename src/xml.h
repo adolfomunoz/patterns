@@ -3,8 +3,8 @@
 #include "reflect.h"
 #include <rapidxml/rapidxml.hpp>
 #include <sstream>
-#include <vector>
-#include <list>
+#include <fstream>
+
 
 namespace pattern {
     
@@ -124,31 +124,6 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
     }    
 };
 
-namespace {
-    template<typename T>
-    struct is_collection_impl {
-        static constexpr bool value = false;
-    };
-    
-    template<typename T>
-    struct is_collection_impl<std::list<T>> {
-        static constexpr bool value = true;
-    };
-    
-    template<typename T>
-    struct is_collection_impl<std::vector<T>> {
-        static constexpr bool value = true;
-    };
-    
-    template<typename T>
-    struct is_collection {
-        static constexpr bool value = is_collection_impl<std::decay_t<T>>::value;
-    };
-    
-    template<typename T>
-    inline constexpr bool is_collection_v = is_collection<T>::value;
-}
-
 template<typename T>
 struct XML<T, std::enable_if_t<is_collection_v<T>>> {
     static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
@@ -199,6 +174,18 @@ void load_xml(T& t, const std::string& xml) {
     rapidxml::xml_document<> doc;
     doc.parse<0>(&copy[0]);
     XML<T>::load(t,&doc);    
+}
+
+template<typename T>
+bool load_xml_file(T& t, const std::string& xmlfile) { 
+    //Too many copies here, we will solve it later if needed.
+    std::ifstream in(xmlfile);
+    if (in.is_open()) {
+        std::ostringstream sstr;
+        sstr << in.rdbuf();
+        load_xml(t,sstr.str());
+        return true;
+    } else return false;
 }
 
 template<typename T>
