@@ -100,40 +100,29 @@ struct CommandLine<T, std::enable_if_t<is_reflectable_v<T>>> {
 };
 
 
-/*
+
 template<typename T>
-struct XML<T, std::enable_if_t<is_collection_v<T>>> {
-    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
-        std::stringstream sstr;
-        for (const auto& item : t) {
-            sstr<<XML<std::decay_t<decltype(item)>>::get(item,name,prefix);
+struct CommandLine<T, std::enable_if_t<is_collection_v<T>>> { 
+    static void load(T& t, int argc, char** argv, const std::string& name = "") {
+        //We add only if something is going to be found, and only add one element
+        bool do_add = false;
+        std::string searchfor = name;
+        if (searchfor.empty()) searchfor=type_traits<T>::name(); 
+        for (int i = 1; i<argc; ++i) {
+            if (std::string(argv[i]).rfind(std::string("--")+searchfor,0) == 0)
+                do_add = true;
         }
-        return sstr.str();
-    } 
-    
-    static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
-        if (node) {
-            t.clear();
-            rapidxml::xml_node<>* found = nullptr; 
-            for (found = node->first_node(type_traits<typename T::value_type>::name()); 
-                 found; 
-                 found = found->next_sibling(type_traits<typename T::value_type>::name())) {
-                
-                rapidxml::xml_attribute<>* name = found->first_attribute("name");
-                if ((att_name.empty()) || 
-                    ((name) && (att_name == std::string(name->value(),name->value_size())))) {
-                    
-                    typename T::value_type value;
-                    rapidxml::xml_document<> tmpdoc;
-                    tmpdoc.append_node(tmpdoc.clone_node(found));
-                    XML<typename T::value_type>::load(value,&tmpdoc,att_name);
-                    t.push_back(value);
-                }
+        if (do_add) {
+            typename T::value_type elem; //Just loads the first element of the collection for now
+            CommandLine<typename T::value_type>::load(elem,argc,argv,name);
+            if constexpr (is_pimpl_v<typename T::value_type>) {
+                if (elem.impl()) t.push_back(elem); 
+            } else { 
+                t.push_back(elem);
             }
         }
     }    
 };
-*/
 
 template<typename T>
 struct CommandLine<T, std::enable_if_t<has_load_commandline_v<T>>> {
@@ -158,15 +147,15 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
         }
     }
     
-    if (xmlstring.empty()) {
-        CommandLine<T>::load(t,argc,argv,name);
-    } else {
+    if (!xmlstring.empty())  {
         for (int i = 1; i<argc; ++i) {
             auto tokens = tokenize(std::string(argv[i]),std::regex("="));
             replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
         } 
         load_xml(t,xmlstring);
     }
+    
+    CommandLine<T>::load(t,argc,argv,name);
 }
 
 template<typename T>

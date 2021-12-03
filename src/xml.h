@@ -150,7 +150,11 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
                     rapidxml::xml_document<> tmpdoc;
                     tmpdoc.append_node(tmpdoc.clone_node(found));
                     XML<typename T::value_type>::load(value,&tmpdoc,att_name);
-                    t.push_back(value);
+                    if constexpr (is_pimpl_v<typename T::value_type>) {
+                        if (value.impl()) t.push_back(value); //Only pushes valid pointer pimpls
+                    } else {
+                        t.push_back(value);
+                    }
                 }
             }
         }

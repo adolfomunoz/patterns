@@ -7,10 +7,9 @@ namespace pattern {
 template<typename Base, typename Enable = void>
 class Pimpl : public Base {
 	std::shared_ptr<Base> base;
-protected:
+public:
     const std::shared_ptr<Base>& impl() const { return base; }
     
-public:
     Pimpl() {}
     
 	template<typename I, typename = std::enable_if_t<std::is_base_of_v<Base,I>>>
@@ -33,5 +32,26 @@ public:
 	Pimpl& operator=(std::shared_ptr<Base>&& base) { this->base = std::forward<std::shared_ptr<Base>>(base); return *this; }
 	Pimpl& operator=(const std::shared_ptr<Base>& base) { this->base = base; return *this; }
 };
+
+// SFINAE test
+template <typename T>
+class is_pimpl
+{
+private:
+    typedef char YesType[1];
+    typedef char NoType[2];
+
+    template <typename C> static YesType& test( decltype(&C::impl) ) ;
+    template <typename C> static NoType& test(...);
+
+
+public:
+    static constexpr bool value = sizeof(test<T>(0)) == sizeof(YesType);
+};
+
+
+template<typename T>
+inline constexpr bool is_pimpl_v = is_pimpl<T>::value;
+
     
 }
