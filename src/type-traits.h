@@ -34,6 +34,21 @@ struct type_traits_impl<long,void> {
     static const char* name() { return "integer"; }
 };
 
+template<>
+struct type_traits_impl<unsigned int,void> {
+    static const char* name() { return "integer"; }
+};
+
+template<>
+struct type_traits_impl<unsigned long,void> {
+    static const char* name() { return "integer"; }
+};
+
+template<>
+struct type_traits_impl<std::string,void> {
+    static const char* name() { return "string"; }
+};
+
 template<typename C>
 struct type_traits : type_traits_impl<std::decay_t<C>> { };
 

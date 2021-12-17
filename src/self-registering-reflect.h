@@ -78,6 +78,10 @@ public:
         return sstr.str();
     }
     
+    static std::string registered() {
+        return SelfRegisteringFactory<Base>::registered();
+    }
+    
     void load_xml(rapidxml::xml_node<>* node, const std::string& att_name = "") {
         rapidxml::xml_node<>* found = XMLSearch<Base>::find(node,att_name);
         if (found) {
