@@ -143,16 +143,13 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
                 std::ostringstream sstr;
                 sstr << in.rdbuf();
                 xmlstring = sstr.str();
+                for (int j = 1; j<argc; ++j) {
+                    auto tokens = tokenize(std::string(argv[j]),std::regex("="));
+                    replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
+                }
+                load_xml(t,xmlstring);
             }
         }
-    }
-    
-    if (!xmlstring.empty())  {
-        for (int i = 1; i<argc; ++i) {
-            auto tokens = tokenize(std::string(argv[i]),std::regex("="));
-            replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
-        } 
-        load_xml(t,xmlstring);
     }
     
     CommandLine<T>::load(t,argc,argv,name);
