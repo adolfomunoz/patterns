@@ -46,8 +46,44 @@ namespace {
     };
     
     template<typename T>
-    inline constexpr bool provides_xml_v = provides_xml<T>::value;
+    inline constexpr bool provides_xml_v = provides_xml<T>::value;   
+
+    namespace has_insertion_operator_impl {
+        typedef char YesType[2];
+        typedef char NoType;
+
+        struct any_t {
+            template<typename T> any_t( T const& );
+        };
+
+        inline NoType operator<<( std::ostream const&, any_t const& ) { return NoType(); };
+
+        template<typename T>
+        struct has_insertion_operator {
+            static std::ostream &s;
+            static T const &t;
+            static YesType& test(std::ostream&) ;
+            static NoType& test(NoType);
+            static bool const value = sizeof(test(s << t) ) == sizeof(YesType);
+        };
+    }
+
+    template<typename T>
+    struct has_ostream_operator :
+        has_insertion_operator_impl::has_insertion_operator<std::decay_t<T>> {
+    };
+    
+    template<typename T>
+    inline constexpr bool has_ostream_operator_v = has_ostream_operator<T>::value;   
 }
+
+
+
+
+
+using xml_flag_type = unsigned char;
+constexpr xml_flag_type xml_reflect_attributes_from_stream = 1;
+
 
 template<typename T>
 struct XMLSearch {
@@ -90,7 +126,7 @@ struct XML {
         }
     } 
     
-    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
         std::stringstream sstr;
         sstr<<prefix<<"<"<<type_traits<T>::name()<<" ";
         if (name != "") sstr<<"name=\""<<name<<"\" ";
@@ -110,14 +146,21 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         }
     }
 
-    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
         std::stringstream sstr;
         sstr<<prefix<<"<"<<type_traits<T>::name();
         if (name != "") sstr<<" name=\""<<name<<"\" ";
+        if (flags & xml_reflect_attributes_from_stream) {
+            t.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
+                if constexpr (has_ostream_operator_v<decltype(value)>)
+                    sstr<<" "<<name<<"=\""<<value<<"\"";
+            });
+        }
         sstr<<">\n";
        
-        t.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
-            sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
+        t.for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
+            if ((!(flags & xml_reflect_attributes_from_stream)) || (!has_ostream_operator_v<decltype(value)>))
+                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
         });
         sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
         return sstr.str();
@@ -126,10 +169,10 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
 
 template<typename T>
 struct XML<T, std::enable_if_t<is_collection_v<T>>> {
-    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
         std::stringstream sstr;
         for (const auto& item : t) {
-            sstr<<XML<std::decay_t<decltype(item)>>::get(item,name,prefix);
+            sstr<<XML<std::decay_t<decltype(item)>>::get(item,name,prefix,flags);
         }
         return sstr.str();
     } 
@@ -163,7 +206,7 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
 
 template<typename T>
 struct XML<T, std::enable_if_t<provides_xml_v<T>>> {
-    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "") {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
         return t.xml(name,prefix);
     } 
     
@@ -200,8 +243,8 @@ T make_from_xml(const std::string& xml) {
 }
 
 template<typename T>
-std::string xml(const T& t) {
-    return XML<T>::get(t);
+std::string xml(const T& t, xml_flag_type flags = 0) {
+    return XML<T>::get(t,"","",flags);
 }
 
 
