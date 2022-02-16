@@ -207,7 +207,7 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
 template<typename T>
 struct XML<T, std::enable_if_t<provides_xml_v<T>>> {
     static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
-        return t.xml(name,prefix);
+        return t.xml(name,prefix,flags);
     } 
     
     static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {

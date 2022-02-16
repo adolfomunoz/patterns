@@ -16,7 +16,8 @@ class SelfRegisteringReflectableBase {
 public: 
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.
-    virtual std::string xml_content(const std::string& prefix = "") const = 0;
+    virtual std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const = 0;
+    virtual std::string xml_attributes(xml_flag_type flags = 0) const = 0;
     virtual void load_content(rapidxml::xml_node<>* node) = 0;
     virtual const char* object_type_name() const = 0;
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
@@ -27,13 +28,26 @@ class SelfRegisteringReflectable : public SelfRegisteringClass<Self, Bases...>, 
 public: 
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.
-    std::string xml_content(const std::string& prefix = "") const override {
+    std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const override {
         std::stringstream sstr;
-        this->for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
-            sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
+        this->for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
+            if ((!(flags & xml_reflect_attributes_from_stream)) || (!has_ostream_operator_v<decltype(value)>))
+                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
         });
         return sstr.str();
     }
+
+    std::string xml_attributes(xml_flag_type flags = 0) const override {
+        std::stringstream sstr;
+        if (flags & xml_reflect_attributes_from_stream) {
+            this->for_each_attribute([&sstr] (const std::string& name, const auto& value) {
+                if constexpr (has_ostream_operator_v<decltype(value)>)
+                    sstr<<" "<<name<<"=\""<<value<<"\"";
+            });
+        }
+        return sstr.str();
+    }
+
     void load_content(rapidxml::xml_node<>* node) override {
         this->for_each_attribute([&node] (const std::string& name, auto& value) {
             XML<std::decay_t<decltype(value)>>::load(value,node,name);
@@ -56,8 +70,11 @@ public:
     using Pimpl<Base,int>::operator=;
 
 protected:
-    std::string xml_content(const std::string& prefix = "") const override {
-        return this->impl()->xml_content(prefix);
+    std::string xml_content(const std::string& prefix = "",xml_flag_type flags = 0) const override {
+        return this->impl()->xml_content(prefix,flags);
+    }
+    std::string xml_attributes(xml_flag_type flags = 0) const override {
+        return this->impl()->xml_attributes(flags);
     }
     void load_content(rapidxml::xml_node<>* node) override {
         this->impl()->load_content(node);
@@ -70,10 +87,10 @@ protected:
     }
 
 public:
-    std::string xml(const std::string& name = "", const std::string& prefix = "") const {
+    std::string xml(const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) const {
         std::stringstream sstr;
-        sstr<<prefix<<"<"<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\">\n";
-        sstr<<xml_content(prefix);
+        sstr<<prefix<<"<"<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\""<<xml_attributes(flags)<<">\n";
+        sstr<<xml_content(prefix,flags);
         sstr<<"</"<<type_traits<Base>::name()<<">\n";
         return sstr.str();
     }
