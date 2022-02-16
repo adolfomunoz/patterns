@@ -83,6 +83,7 @@ namespace {
 
 using xml_flag_type = unsigned char;
 constexpr xml_flag_type xml_reflect_attributes_from_stream = 1;
+constexpr xml_flag_type xml_tag_as_derived = 2;
 
 
 template<typename T>

@@ -89,9 +89,18 @@ protected:
 public:
     std::string xml(const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) const {
         std::stringstream sstr;
-        sstr<<prefix<<"<"<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\""<<xml_attributes(flags)<<">\n";
-        sstr<<xml_content(prefix,flags);
-        sstr<<"</"<<type_traits<Base>::name()<<">\n";
+        sstr<<prefix<<"<";
+        if (flags & xml_tag_as_derived)
+            sstr<<object_type_name();
+        else
+            sstr<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\"";
+        sstr<<xml_attributes(flags)<<">\n"<<xml_content(prefix,flags);
+
+        if (flags & xml_tag_as_derived)
+            sstr<<"</"<<object_type_name()<<">\n";
+        else
+            sstr<<"</"<<type_traits<Base>::name()<<">\n";
+
         return sstr.str();
     }
     
