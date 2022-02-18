@@ -48,29 +48,16 @@ namespace {
     template<typename T>
     inline constexpr bool provides_xml_v = provides_xml<T>::value;   
 
-    namespace has_insertion_operator_impl {
-        typedef char YesType[2];
-        typedef char NoType;
+    template <typename T, typename = void>
+    struct has_ostream_operator_impl : std::false_type {};
 
-        struct any_t {
-            template<typename T> any_t( T const& );
-        };
-
-        inline NoType operator<<( std::ostream const&, any_t const& ) { return NoType(); };
-
-        template<typename T>
-        struct has_insertion_operator {
-            static std::ostream &s;
-            static T const &t;
-            static YesType& test(std::ostream&) ;
-            static NoType& test(NoType);
-            static bool const value = sizeof(test(s << t) ) == sizeof(YesType);
-        };
-    }
+    template <typename T>
+    struct has_ostream_operator_impl<T, 
+           std::void_t<decltype(std::declval<std::ostream&>()<<std::declval<T>()) >> : std::true_type {};
 
     template<typename T>
-    struct has_ostream_operator :
-        has_insertion_operator_impl::has_insertion_operator<std::decay_t<T>> {
+    struct has_ostream_operator {
+        static constexpr bool value = has_ostream_operator_impl<T>::value;
     };
     
     template<typename T>

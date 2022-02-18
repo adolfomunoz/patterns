@@ -9,6 +9,14 @@ class Pimpl : public Base {
 	std::shared_ptr<Base> base;
 public:
     const std::shared_ptr<Base>& impl() const { return base; }
+
+    template<typename T> //Not the most efficient way, I would rather mantain static cast and dynamic cast but that's not possible with virtual base classes.
+    T& cast() { return *std::dynamic_pointer_cast<T>(base); }
+    template<typename T>
+    const T& cast() const { return *std::dynamic_pointer_cast<T>(base); }
+    template<typename T>
+    bool instance_of() const { return bool(std::dynamic_pointer_cast<T>(base)); }
+
     
     Pimpl() {}
     

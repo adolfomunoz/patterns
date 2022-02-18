@@ -97,9 +97,9 @@ public:
         sstr<<xml_attributes(flags)<<">\n"<<xml_content(prefix,flags);
 
         if (flags & xml_tag_as_derived)
-            sstr<<"</"<<object_type_name()<<">\n";
+            sstr<<prefix<<"</"<<object_type_name()<<">\n";
         else
-            sstr<<"</"<<type_traits<Base>::name()<<">\n";
+            sstr<<prefix<<"</"<<type_traits<Base>::name()<<">\n";
 
         return sstr.str();
     }
