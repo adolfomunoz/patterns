@@ -87,6 +87,11 @@ protected:
     }
 
 public:
+    void set_type(const std::string& name) {
+        auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
+        if (ptr) (*this) = ptr;
+    }
+
     std::string xml(const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) const {
         std::stringstream sstr;
         sstr<<prefix<<"<";
