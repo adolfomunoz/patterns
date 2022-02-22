@@ -58,7 +58,6 @@ public:
     }
     
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) {
-        std::cerr<<"Loading content"<<std::endl;
         CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }
 };
@@ -67,6 +66,7 @@ template<typename Base>
 class Pimpl<Base,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,int> {
 public:
     using Pimpl<Base,int>::Pimpl;
+    Pimpl(const std::string& type) : Pimpl<Base,int>(SelfRegisteringFactory<Base>::make_shared(type)) {}
     using Pimpl<Base,int>::operator=;
 
 protected:
@@ -91,39 +91,58 @@ public:
         auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
         if (ptr) (*this) = ptr;
     }
-
+    
+    static bool can_hold_type(const std::string& name) {
+        //Warning, this does not seem to work very well
+        return SelfRegisteringFactory<Base>::make_shared(name);
+    }
+    
     std::string xml(const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) const {
-        std::stringstream sstr;
-        sstr<<prefix<<"<";
-        if (flags & xml_tag_as_derived)
-            sstr<<object_type_name();
-        else
-            sstr<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\"";
-        sstr<<xml_attributes(flags)<<">\n"<<xml_content(prefix,flags);
+        if (this->impl()) {
+            std::stringstream sstr;
+            sstr<<prefix<<"<";
+            if (flags & xml_tag_as_derived)
+                sstr<<object_type_name();
+            else
+                sstr<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\"";
+            sstr<<xml_attributes(flags)<<">\n"<<xml_content(prefix,flags);
 
-        if (flags & xml_tag_as_derived)
-            sstr<<prefix<<"</"<<object_type_name()<<">\n";
-        else
-            sstr<<prefix<<"</"<<type_traits<Base>::name()<<">\n";
+            if (flags & xml_tag_as_derived)
+                sstr<<prefix<<"</"<<object_type_name()<<">\n";
+            else
+                sstr<<prefix<<"</"<<type_traits<Base>::name()<<">\n";
 
-        return sstr.str();
+            return sstr.str();
+        } else return "";
     }
     
     static std::string registered() {
         return SelfRegisteringFactory<Base>::registered();
     }
     
+//    void find_
+        
     void load_xml(rapidxml::xml_node<>* node, const std::string& att_name = "") {
-        rapidxml::xml_node<>* found = XMLSearch<Base>::find(node,att_name);
-        if (found) {
-            rapidxml::xml_attribute<>* type = found->first_attribute("type");
-            if (type) {
-                if ((this->impl()) && (this->object_type_name() == std::string(type->value(),type->value_size()))) load_content(found);
-                else {
-                    auto ptr = SelfRegisteringFactory<Base>::make_shared(std::string(type->value(),type->value_size()));
+        if (!node) return;
+        rapidxml::xml_node<>* found = nullptr;
+        std::string loading_type = "";
+        for (found = node->first_node(); found; found = found->next_sibling()) {
+            rapidxml::xml_attribute<>* name = found->first_attribute("name");
+            if ((att_name.empty()) || ((name) && (att_name == std::string(name->value(),name->value_size())))) {
+                if (Base::type_name() == std::string(found->name(),found->name_size())) { 
+                    rapidxml::xml_attribute<>* type = found->first_attribute("type");
+                    if (type) loading_type = std::string(type->value(),type->value_size());
+                } else loading_type = std::string(found->name(),found->name_size());
+                
+                if ((this->impl()) && (this->object_type_name() == loading_type)) {
+                    load_content(found);
+                    return;
+                } else {
+                    auto ptr = SelfRegisteringFactory<Base>::make_shared(loading_type);
                     if (ptr) {
                         (*this) = ptr;
                         load_content(found);
+                        return;
                     }
                 }
             }

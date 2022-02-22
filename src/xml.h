@@ -72,9 +72,9 @@ using xml_flag_type = unsigned char;
 constexpr xml_flag_type xml_reflect_attributes_from_stream = 1;
 constexpr xml_flag_type xml_tag_as_derived = 2;
 
-
-template<typename T>
+template<typename T, typename Enable = void>
 struct XMLSearch {
+    
     static rapidxml::xml_node<>* find(rapidxml::xml_node<>* node, const std::string& att_name = "") {
         if (!node) return nullptr;
         rapidxml::xml_node<>* found = nullptr; 
@@ -169,22 +169,26 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
         if (node) {
             t.clear();
             rapidxml::xml_node<>* found = nullptr; 
-            for (found = node->first_node(type_traits<typename T::value_type>::name()); 
+            for (found = node->first_node(); 
                  found; 
-                 found = found->next_sibling(type_traits<typename T::value_type>::name())) {
+                 found = found->next_sibling()) {
                 
-                rapidxml::xml_attribute<>* name = found->first_attribute("name");
-                if ((att_name.empty()) || 
-                    ((name) && (att_name == std::string(name->value(),name->value_size())))) {
+                if (provides_xml_v<typename T::value_type> || 
+                    (std::string(found->name(),found->name_size()) == type_traits<typename T::value_type>::name())) { 
                     
-                    typename T::value_type value;
-                    rapidxml::xml_document<> tmpdoc;
-                    tmpdoc.append_node(tmpdoc.clone_node(found));
-                    XML<typename T::value_type>::load(value,&tmpdoc,att_name);
-                    if constexpr (is_pimpl_v<typename T::value_type>) {
-                        if (value.impl()) t.push_back(value); //Only pushes valid pointer pimpls
-                    } else {
-                        t.push_back(value);
+                    rapidxml::xml_attribute<>* name = found->first_attribute("name");
+                    if ((att_name.empty()) || 
+                        ((name) && (att_name == std::string(name->value(),name->value_size())))) {
+                        
+                        typename T::value_type value;
+                        rapidxml::xml_document<> tmpdoc;
+                        tmpdoc.append_node(tmpdoc.clone_node(found));
+                        XML<typename T::value_type>::load(value,&tmpdoc,att_name);
+                        if constexpr (is_pimpl_v<typename T::value_type>) {
+                            if (value.impl()) t.push_back(value); //Only pushes valid pointer pimpls
+                        } else {
+                            t.push_back(value);
+                        }
                     }
                 }
             }
