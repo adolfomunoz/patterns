@@ -89,7 +89,7 @@ protected:
 public:
     void set_type(const std::string& name) {
         auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
-        if (ptr) (*this) = ptr;
+        if (ptr) { (*this) = ptr; }
     }
     
     static bool can_hold_type(const std::string& name) {
@@ -119,8 +119,6 @@ public:
     static std::string registered() {
         return SelfRegisteringFactory<Base>::registered();
     }
-    
-//    void find_
         
     void load_xml(rapidxml::xml_node<>* node, const std::string& att_name = "") {
         if (!node) return;
