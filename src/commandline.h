@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <regex>
+#include <optional>
 
 namespace pattern {
     
@@ -78,6 +79,21 @@ struct CommandLine {
             if (tokens[0] == (std::string("--")+searchfor)) {
                 std::stringstream s(tokens[1]); 
                 s>>t;
+            }
+        }
+    }
+};
+
+template<typename T>
+struct CommandLine<std::optional<T>> {
+    static void load(std::optional<T>& t, int argc, char** argv, const std::string& name = "") {
+        std::string searchfor = name;
+        if (searchfor.empty()) searchfor=type_traits<T>::name();
+        for (int i = 1; i<argc; ++i) {
+            auto tokens = tokenize(std::string(argv[i]),std::regex("="));
+            if (tokens[0] == (std::string("--")+searchfor)) {
+                std::stringstream s(tokens[1]); 
+                T data; s>>data; t=data;
             }
         }
     }

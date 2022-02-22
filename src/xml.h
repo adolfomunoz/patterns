@@ -4,6 +4,7 @@
 #include <rapidxml/rapidxml.hpp>
 #include <sstream>
 #include <fstream>
+#include <optional>
 
 
 namespace pattern {
@@ -121,7 +122,47 @@ struct XML {
         sstr<<"value=\""<<t<<"\" />\n";
         return sstr.str();
     }
+    
+    static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        std::stringstream sstr;
+        if (!name.empty()) sstr<<name<<"=\""<<t<<"\"";;
+        return sstr.str();
+    }
 };
+
+template<typename T>
+struct XML<std::optional<T>> {
+    static void load(std::optional<T>& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
+        if (found) {
+            T data;
+            XML<T>::load(data,node,att_name);
+            t = data;
+        } else if constexpr (has_ostream_operator_v<T>) {
+            if (!att_name.empty()) {
+                rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
+                if (att) {
+                    std::string str(att->value(), att->value_size()); 
+                    std::istringstream ss(str);
+                    T data;
+                    ss>>data;
+                    t = data; 
+                }
+            }
+        }
+    } 
+    
+    static std::string get(const std::optional<T>& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
+        if (t) return XML<T>::get(*t,name,prefix,flags);
+        return "";
+    }
+    
+    static std::string get_attribute(const std::optional<T>& t, const std::string& name = "", xml_flag_type flags = 0) {
+        if (t) return XML<T>::get_attribute(*t,name,flags);
+        return "";
+    }        
+};
+
 
 template<typename T>
 struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
@@ -139,20 +180,25 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         sstr<<prefix<<"<"<<type_traits<T>::name();
         if (name != "") sstr<<" name=\""<<name<<"\" ";
         if (flags & xml_reflect_attributes_from_stream) {
-            t.for_each_attribute([&sstr,&prefix] (const std::string& name, const auto& value) {
-                if constexpr (has_ostream_operator_v<decltype(value)>)
-                    sstr<<" "<<name<<"=\""<<value<<"\"";
+            t.for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
+                std::string s = XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags);
+                if (!s.empty()) sstr<<" "<<s;
             });
         }
         sstr<<">\n";
        
         t.for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
-            if ((!(flags & xml_reflect_attributes_from_stream)) || (!has_ostream_operator_v<decltype(value)>))
+            if ((!(flags & xml_reflect_attributes_from_stream)) || (
+                XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags).empty()))
                 sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
         });
         sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
         return sstr.str();
-    }    
+    } 
+
+    static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        return "";
+    }      
 };
 
 template<typename T>
@@ -193,7 +239,11 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
                 }
             }
         }
-    }    
+    }
+
+    static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        return "";
+    }       
 };
 
 template<typename T>
@@ -204,7 +254,11 @@ struct XML<T, std::enable_if_t<provides_xml_v<T>>> {
     
     static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
         if (node) t.load_xml(node,att_name);
-    }    
+    }
+
+    static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        return "";
+    }       
 };
 
 template<typename T>

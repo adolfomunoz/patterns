@@ -31,18 +31,18 @@ public:
     std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const override {
         std::stringstream sstr;
         this->for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
-            if ((!(flags & xml_reflect_attributes_from_stream)) || (!has_ostream_operator_v<decltype(value)>))
-                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ");
-        });
-        return sstr.str();
+            if ((!(flags & xml_reflect_attributes_from_stream)) || (
+                XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags).empty()))
+                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
+        });        return sstr.str();
     }
 
     std::string xml_attributes(xml_flag_type flags = 0) const override {
         std::stringstream sstr;
         if (flags & xml_reflect_attributes_from_stream) {
-            this->for_each_attribute([&sstr] (const std::string& name, const auto& value) {
-                if constexpr (has_ostream_operator_v<decltype(value)>)
-                    sstr<<" "<<name<<"=\""<<value<<"\"";
+            this->for_each_attribute([&sstr,&flags] (const std::string& name, const auto& value) {
+                std::string s = XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags);
+                if (!s.empty()) sstr<<" "<<s;
             });
         }
         return sstr.str();
