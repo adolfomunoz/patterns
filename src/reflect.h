@@ -74,6 +74,9 @@ inline constexpr bool is_reflectable_v = is_reflectable<T>::value;
 template<typename... Bases>
 class ReflectableInheritance {
 public:
+    using FirstBase = void;
+    using RestOfBases = int;
+
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
      **/
@@ -90,6 +93,9 @@ public:
 template<typename Base, typename... Bases>
 class ReflectableInheritance<Base,Bases...>: public Base, public ReflectableInheritance<Bases...> {
 public:
+    using FirstBase = Base;
+    using RestOfBases = ReflectableInheritance<Bases...>;
+
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
      **/
@@ -112,7 +118,10 @@ public:
 template<typename Base>
 class ReflectableInheritance<Base>: public Base {
 public:
-    /**
+    using FirstBase = Base;
+    using RestOfBases = void;
+
+   /**
      * F is a function that can take a single parameter for any of the type of the bases.
      **/
     template<typename F>
@@ -128,7 +137,6 @@ public:
         f(static_cast<const Base&>(*this));
     }    
 };
-
 
 /**
  * Curiously Recurring Template Pattern

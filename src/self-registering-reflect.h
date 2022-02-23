@@ -23,8 +23,39 @@ public:
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
 };
 
+
+template<typename Self, typename Base, typename Enable = void>
+class CheckedSelfRegistering {};
+
 template<typename Self, typename... Bases>
-class SelfRegisteringReflectable : public SelfRegisteringClass<Self, Bases...>, public Reflectable<Self,Bases...> {
+class CheckedManySelfRegistering {}; //Should never happen
+
+template<typename Self, typename Base>
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<!is_reflectable_v<Base> && std::is_abstract_v<Base> && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base> {
+};
+
+template<typename Self, typename... Bases>
+class CheckedSelfRegistering<Self, ReflectableInheritance<Bases...>> : public CheckedManySelfRegistering<Self,Bases...> {};
+
+template<typename Self, typename Base>
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && !std::is_abstract_v<Base> && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public CheckedSelfRegistering<Self,typename Base::FirstBase>, public CheckedSelfRegistering<Self,typename Base::RestOfBases> {
+};
+
+template<typename Self, typename Base>
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && std::is_abstract_v<Base>  && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base>, public CheckedSelfRegistering<Self,typename Base::FirstBase>, public CheckedSelfRegistering<Self,typename Base::RestOfBases> {
+};
+
+
+template<typename Self, typename Base, typename... Bases>
+class CheckedManySelfRegistering<Self,Base,Bases...> : public CheckedSelfRegistering<Self,Base>, public CheckedManySelfRegistering<Self,Bases...> {};
+
+template<typename Self, typename Base>
+class CheckedManySelfRegistering<Self,Base> : public CheckedSelfRegistering<Self,Base> {};
+
+
+
+template<typename Self, typename... Bases>
+class SelfRegisteringReflectable : public CheckedManySelfRegistering<Self, Bases...>, public Reflectable<Self,Bases...> {
 public: 
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.

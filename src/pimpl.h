@@ -11,12 +11,16 @@ public:
     const std::shared_ptr<Base>& impl() const { return base; }
 
     template<typename T> 
-    T& cast() { return static_cast<T&>(*base); }
+    T& cast_static() { return static_cast<T&>(*base); }
     template<typename T>
-    const T& cast() const { return static_cast<const T&>(*base); }
+    const T& cast_static() const { return static_cast<const T&>(*base); }
     template<typename T>
     bool instance_of() const { return bool(std::dynamic_pointer_cast<T>(base)); }
-
+    template<typename T> 
+    T& cast_dynamic() { return *std::dynamic_pointer_cast<T>(base); }
+    template<typename T>
+    const T& cast_dynamic() const { return *std::dynamic_pointer_cast<T>(base); }
+ 
     
     Pimpl() {}
     
