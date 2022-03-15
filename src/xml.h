@@ -197,7 +197,14 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
     } 
 
     static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
-        return "";
+        if constexpr (has_ostream_operator_v<T>) {
+            if (!name.empty()) {
+                std::stringstream sstr; 
+                sstr<<name<<"=\""<<t<<"\"";
+                return sstr.str();
+            }
+        } 
+        return "";  
     }      
 };
 
@@ -242,6 +249,13 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
     }
 
     static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        if constexpr (has_ostream_operator_v<T>) {
+            if (!name.empty()) {
+                std::stringstream sstr; 
+                sstr<<name<<"=\""<<t<<"\"";
+                return sstr.str();
+            }
+        } 
         return "";
     }       
 };
@@ -257,6 +271,13 @@ struct XML<T, std::enable_if_t<provides_xml_v<T>>> {
     }
 
     static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        if constexpr (has_ostream_operator_v<T>) {
+            if (!name.empty()) {
+                std::stringstream sstr; 
+                sstr<<name<<"=\""<<t<<"\"";
+                return sstr.str();
+            }
+        } 
         return "";
     }       
 };

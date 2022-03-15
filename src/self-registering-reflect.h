@@ -136,6 +136,7 @@ public:
                 sstr<<object_type_name();
             else
                 sstr<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\"";
+            if (!name.empty()) sstr<<"name="<<name<<" ";
             sstr<<xml_attributes(flags)<<">\n"<<xml_content(prefix,flags);
 
             if (flags & xml_tag_as_derived)
