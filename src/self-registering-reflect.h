@@ -158,7 +158,7 @@ public:
         for (found = node->first_node(); found; found = found->next_sibling()) {
             rapidxml::xml_attribute<>* name = found->first_attribute("name");
             if ((att_name.empty()) || ((name) && (att_name == std::string(name->value(),name->value_size())))) {
-                if (Base::type_name() == std::string(found->name(),found->name_size())) { 
+                if (type_traits<Base>::name() == std::string(found->name(),found->name_size())) { 
                     rapidxml::xml_attribute<>* type = found->first_attribute("type");
                     if (type) loading_type = std::string(type->value(),type->value_size());
                 } else loading_type = std::string(found->name(),found->name_size());
