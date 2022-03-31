@@ -12,6 +12,7 @@ include(Compiler)
 ###########################################################################################
 add_executable(pimpl examples/pimpl/main.cc)
 add_executable(reflect examples/reflect/main.cc)
+add_executable(visitor examples/visitor/main.cc)
 add_executable(reflect-inheritance examples/reflect-inheritance/main.cc)
 add_executable(self-registering-factory examples/self-registering-factory/main.cc)
 add_executable(xml-reflect-inheritance examples/xml-reflect-inheritance/main.cc)
