@@ -53,6 +53,17 @@ public:
     FunctionVisitor(ReturnType&& r) : FunctionVisitor<ReturnType>(std::forward<ReturnType>(r)) {}  
 };
 
+/**
+template<typename ReturnType, typename ParameterType>
+class FunctionVisitor<ReturnType,std::enable_if_t<std::is_convertible_v<ParameterType,ReturnType>,ParameterType>> : public FunctionVisitor<ReturnType> {
+public:
+    FunctionVisitor(const ParameterType& r) : FunctionVisitor<ReturnType>(ReturnType(r)) {}
+    FunctionVisitor(ParameterType&& r) : FunctionVisitor<ReturnType>(std::forward<ReturnType>(r)) {}  
+};
+**/
+
+
+
 
 template<>
 class FunctionVisitor<void> : public Visitor<> {};
