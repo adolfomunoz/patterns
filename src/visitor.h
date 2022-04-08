@@ -62,11 +62,9 @@ public:
 };
 **/
 
-
-
-
 template<>
 class FunctionVisitor<void> : public Visitor<> {};
+
 
 namespace detail {
     template<typename T>
@@ -144,6 +142,14 @@ public:
         if constexpr (!std::is_same_v<typename detail::function_traits<Function>::result_type,void>) return visitor.returned_value();
    }
 
+   template<typename Function, typename... Functions>
+   typename detail::function_traits<Function>::result_type apply(Function&& f, Functions&&... fs) const {
+        FunctionVisitor<typename detail::function_traits<Function>::result_type,Function,Functions...> visitor(std::forward<Function>(f), std::forward<Functions>(fs)...);
+        this->accept(visitor);
+        if constexpr (!std::is_same_v<typename detail::function_traits<Function>::result_type,void>) return visitor.returned_value();
+   }
+
+
 };
 
 #define VISITABLE_METHODS(Self) \
@@ -157,10 +163,18 @@ public:
         ConstVisitorImpl<Self>* specific = dynamic_cast<ConstVisitorImpl<Self>*>(&v);\
         if (specific) this->accept(*specific);\
     }\
+   template<typename Function, typename... Functions>\
+   typename detail::function_traits<Function>::result_type apply(Function&& f, Functions&&... fs) {\
+        if constexpr (std::is_same_v<Self,typename detail::function_traits<Function>::argument_type>) return f(static_cast<Self&>(*this));\
+        else return apply(std::forward<Functions>(fs)...);\
+   }\
+   template<typename Function, typename... Functions>\
+   typename detail::function_traits<Function>::result_type apply(Function&& f, Functions&&... fs) const {\
+        if constexpr (std::is_same_v<Self,typename detail::function_traits<Function>::argument_type>) return f(static_cast<Self&>(*this));\
+        else return apply(std::forward<Functions>(fs)...);\
+   }\
 
-
-
-
+        
 template<typename Self, typename Derived>
 class Visitable : public Derived {
 public:
