@@ -53,7 +53,6 @@ template<typename Self, typename Base>
 class CheckedManySelfRegistering<Self,Base> : public CheckedSelfRegistering<Self,Base> {};
 
 
-
 template<typename Self, typename... Bases>
 class SelfRegisteringReflectable : public CheckedManySelfRegistering<Self, Bases...>, public Reflectable<Self,Bases...> {
 public: 

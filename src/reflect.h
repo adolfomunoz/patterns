@@ -66,12 +66,19 @@ template<typename T>
 inline constexpr bool is_reflectable_v = is_reflectable<T>::value; 
 
 /**
+ * This template provides way to do inheritance with the possibility of specializations.
+ * These specializations will happen for visitors, self-registering classes... using SFINAE
+ */
+template<typename Self, typename Base, typename Enable = void>
+class SmartInheritance : public Base {};
+
+/**
  * Bases are the superclasses of the base class.
- * This class is the spezialization for zero (empty) parameters (base classes).
+ * This class is the spezialization for zero base classes.
  * It will be specialized
- * It rovides the method "for_all_base_casses" which statically traverses all the base classes.
+ * It provides the method "for_all_base_casses" which statically traverses all the base classes.
  **/
-template<typename... Bases>
+template<typename Self, typename... Bases>
 class ReflectableInheritance {
 public:
     using FirstBase = void;
@@ -90,8 +97,8 @@ public:
     void for_all_base_classes(const F& f) const {}       
 };  
 
-template<typename Base, typename... Bases>
-class ReflectableInheritance<Base,Bases...>: public Base, public ReflectableInheritance<Bases...> {
+template<typename Self, typename Base, typename... Bases>
+class ReflectableInheritance<Self,Base,Bases...>: Base, public ReflectableInheritance<Self,Bases...> {
 public:
     using FirstBase = Base;
     using RestOfBases = ReflectableInheritance<Bases...>;
@@ -102,7 +109,7 @@ public:
     template<typename F>
     void for_all_base_classes(const F& f) {
         f(static_cast<Base&>(*this));
-        ReflectableInheritance<Bases...>::for_all_base_classes(f);
+        ReflectableInheritance<Self,Bases...>::for_all_base_classes(f);
     }
     
     /**
@@ -111,12 +118,12 @@ public:
     template<typename F>
     void for_all_base_classes(const F& f) const {
         f(static_cast<const Base&>(*this));
-        ReflectableInheritance<Bases...>::for_all_base_classes(f);
+        ReflectableInheritance<Self,Bases...>::for_all_base_classes(f);
     }    
 };
 
-template<typename Base>
-class ReflectableInheritance<Base>: public Base {
+template<typename Self, typename Base>
+class ReflectableInheritance<Self,Base>: public Base {
 public:
     using FirstBase = Base;
     using RestOfBases = void;
@@ -148,7 +155,7 @@ public:
  *     are reflectable themselves for inheritance of the reflectable properties as well.
  **/
 template<typename Self, typename... Bases>
-class Reflectable : public ReflectableInheritance<Bases...> { 
+class Reflectable : public ReflectableInheritance<Self,Bases...> { 
 public: 
     //vv The reflect method is here so we have an empty implementation by default but Self should
     //   have its own reflect method for its attributes.
