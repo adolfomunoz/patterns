@@ -52,6 +52,72 @@ class CheckedManySelfRegistering<Self,Base,Bases...> : public CheckedSelfRegiste
 template<typename Self, typename Base>
 class CheckedManySelfRegistering<Self,Base> : public CheckedSelfRegistering<Self,Base> {};
 
+/*
+typename<typename Bases...>
+struct AnyIsSelfRegistering {};
+
+typename<typename Base, typename Bases...>
+struct AnyIsSelfRegistering {
+    static constexpr bool value = std::is_base_of<SelfRegisteringReflectableBase,Base>::value ||
+        AnyIsSelfRegistering<Bases...>::value;
+};
+
+typename<typename Base, typename Bases...>
+struct AnyIsSelfRegistering {
+    static constexpr bool value = std::is_base_of<SelfRegisteringReflectableBase,Base>::value ||
+        AnyIsSelfRegistering<Bases...>::value;
+};
+
+typename<typename Base>
+struct AnyIsSelfRegistering {
+    static constexpr bool value = std::is_base_of<SelfRegisteringReflectableBase,Base>::value;
+};*/
+
+namespace layer {
+    constexpr unsigned int self_registering = 1;
+};
+
+/*
+template<unsigned int Layer, typename Self, typename... Bases>
+class ReflectableImpl<layer::self_registering,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering-1,Self,Bases...> {
+public: 
+//All these three are public because it is really hard to "friend" the corresponding Pimpl class below
+//but they should be protected.
+    std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const override {
+        std::stringstream sstr;
+        this->for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
+            if ((!(flags & xml_reflect_attributes_from_stream)) || (
+                XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags).empty()))
+                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
+        });        return sstr.str();
+    }
+
+    std::string xml_attributes(xml_flag_type flags = 0) const override {
+        std::stringstream sstr;
+        if (flags & xml_reflect_attributes_from_stream) {
+            this->for_each_attribute([&sstr,&flags] (const std::string& name, const auto& value) {
+                std::string s = XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags);
+                if (!s.empty()) sstr<<" "<<s;
+            });
+        }
+        return sstr.str();
+    }
+
+    void load_content(rapidxml::xml_node<>* node) override {
+        this->for_each_attribute([&node] (const std::string& name, auto& value) {
+            XML<std::decay_t<decltype(value)>>::load(value,node,name);
+        });          
+    }
+    const char* object_type_name() const override {
+        return type_traits<Self>::name();
+    }
+    
+    virtual void load_commandline_content(int argc, char**argv, const std::string& name) {
+        CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
+    }     
+};*/
+
+
 
 template<typename Self, typename... Bases>
 class SelfRegisteringReflectable : public CheckedManySelfRegistering<Self, Bases...>, public Reflectable<Self,Bases...> {
@@ -91,6 +157,7 @@ public:
         CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }
 };
+
 
 template<typename Base>
 class Pimpl<Base,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,int> {

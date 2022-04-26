@@ -66,13 +66,6 @@ template<typename T>
 inline constexpr bool is_reflectable_v = is_reflectable<T>::value; 
 
 /**
- * This template provides way to do inheritance with the possibility of specializations.
- * These specializations will happen for visitors, self-registering classes... using SFINAE
- */
-template<typename Self, typename Base, typename Enable = void>
-class SmartInheritance : public Base {};
-
-/**
  * Bases are the superclasses of the base class.
  * This class is the spezialization for zero base classes.
  * It will be specialized
@@ -145,17 +138,17 @@ public:
     }    
 };
 
-/**
- * Curiously Recurring Template Pattern
- * Self should have:
- *     - The method "reflect()" returning a tuple with references to all meaningful attributes.
- *     - Optionally: the method "reflect_names()" returning a tuple with strings that have attribute names.
- *     - Optionally: the static method "type_name()" returning a string with the name of the type.
- * Bases... are base classes of the reflectable class. It is automatically detected whether they 
- *     are reflectable themselves for inheritance of the reflectable properties as well.
- **/
+
+namespace layer {
+    constexpr unsigned int basic = 0;
+    constexpr unsigned int total = 5;
+};
+
+template<unsigned int Layer, typename Self, typename... Bases>
+class ReflectableImpl : public ReflectableImpl<Layer-1,Self,Bases...> {};
+
 template<typename Self, typename... Bases>
-class Reflectable : public ReflectableInheritance<Self,Bases...> { 
+class ReflectableImpl<layer::basic,Self,Bases...> : public ReflectableInheritance<Self,Bases...> { 
 public: 
     //vv The reflect method is here so we have an empty implementation by default but Self should
     //   have its own reflect method for its attributes.
@@ -196,6 +189,18 @@ public:
         }
     }
 };
+
+/**
+ * Curiously Recurring Template Pattern
+ * Self should have:
+ *     - The method "reflect()" returning a tuple with references to all meaningful attributes.
+ *     - Optionally: the method "reflect_names()" returning a tuple with strings that have attribute names.
+ *     - Optionally: the static method "type_name()" returning a string with the name of the type.
+ * Bases... are base classes of the reflectable class. It is automatically detected whether they 
+ *     are reflectable themselves for inheritance of the reflectable properties as well.
+ **/
+template<typename Self, typename... Bases>
+class Reflectable : public ReflectableImpl<layer::total,Self,Bases...> { };
 
 template<typename T>
 auto operator<<(std::ostream& os, const T& v) -> std::enable_if_t<is_reflectable_v<T>, std::ostream&> {
