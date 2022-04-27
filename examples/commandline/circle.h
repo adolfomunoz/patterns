@@ -3,7 +3,7 @@
 #include "shape.h"
 #include <cmath>
 
-class Circle : public pattern::SelfRegisteringReflectable<Circle,ShapeBase> {
+class Circle : public pattern::Reflectable<Circle,ShapeBase> {
     float radius;
 public:
     Circle(float radius = 1.0f) : radius(radius) {}

@@ -145,7 +145,29 @@ namespace layer {
 };
 
 template<unsigned int Layer, typename Self, typename... Bases>
-class ReflectableImpl : public ReflectableImpl<Layer-1,Self,Bases...> {};
+struct layer_condition {
+    static constexpr bool value = false;
+};
+
+template<typename Self, typename... Bases>
+void print_conditions() {
+    std::cerr<<"[ ";
+    if (layer_condition<0,Self,Bases...>::value) std::cerr<<"0 ";
+    if (layer_condition<1,Self,Bases...>::value) std::cerr<<"1 ";
+    if (layer_condition<2,Self,Bases...>::value) std::cerr<<"2 ";
+    if (layer_condition<3,Self,Bases...>::value) std::cerr<<"3 ";
+    if (layer_condition<4,Self,Bases...>::value) std::cerr<<"4 ";
+    std::cerr<<"]"<<std::endl;
+}
+
+template<unsigned int Layer, bool Condition, typename Self, typename... Bases>
+class ReflectableChecked;
+
+template<unsigned int Layer, typename Self, typename... Bases>
+class ReflectableImpl : public ReflectableChecked<Layer-1,layer_condition<Layer-1,Self,Bases...>::value,Self,Bases...> {};
+
+template<unsigned int Layer, bool Condition, typename Self, typename... Bases>
+class ReflectableChecked : public ReflectableImpl<Layer,Self,Bases...> {};
 
 template<typename Self, typename... Bases>
 class ReflectableImpl<layer::basic,Self,Bases...> : public ReflectableInheritance<Self,Bases...> { 

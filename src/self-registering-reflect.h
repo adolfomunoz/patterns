@@ -52,34 +52,29 @@ class CheckedManySelfRegistering<Self,Base,Bases...> : public CheckedSelfRegiste
 template<typename Self, typename Base>
 class CheckedManySelfRegistering<Self,Base> : public CheckedSelfRegistering<Self,Base> {};
 
-/*
-typename<typename Bases...>
-struct AnyIsSelfRegistering {};
-
-typename<typename Base, typename Bases...>
+template<typename... Bases>
 struct AnyIsSelfRegistering {
+    static constexpr bool value = false;
+    
+};
+
+template<typename Base, typename... Bases>
+struct AnyIsSelfRegistering<Base,Bases...> {
     static constexpr bool value = std::is_base_of<SelfRegisteringReflectableBase,Base>::value ||
         AnyIsSelfRegistering<Bases...>::value;
 };
-
-typename<typename Base, typename Bases...>
-struct AnyIsSelfRegistering {
-    static constexpr bool value = std::is_base_of<SelfRegisteringReflectableBase,Base>::value ||
-        AnyIsSelfRegistering<Bases...>::value;
-};
-
-typename<typename Base>
-struct AnyIsSelfRegistering {
-    static constexpr bool value = std::is_base_of<SelfRegisteringReflectableBase,Base>::value;
-};*/
 
 namespace layer {
     constexpr unsigned int self_registering = 1;
 };
 
-/*
-template<unsigned int Layer, typename Self, typename... Bases>
-class ReflectableImpl<layer::self_registering,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering-1,Self,Bases...> {
+template<typename Self, typename... Bases>
+struct layer_condition<layer::self_registering,Self,Bases...> {
+    static constexpr bool value = AnyIsSelfRegistering<Bases...>::value;
+};
+
+template<typename Self, typename... Bases>
+class ReflectableChecked<layer::self_registering,true,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering-1,Self,Bases...> {
 public: 
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.
@@ -115,10 +110,10 @@ public:
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) {
         CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }     
-};*/
+};
 
 
-
+/*
 template<typename Self, typename... Bases>
 class SelfRegisteringReflectable : public CheckedManySelfRegistering<Self, Bases...>, public Reflectable<Self,Bases...> {
 public: 
@@ -157,7 +152,7 @@ public:
         CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }
 };
-
+*/
 
 template<typename Base>
 class Pimpl<Base,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,int> {
