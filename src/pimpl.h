@@ -1,11 +1,21 @@
 #pragma once
 
 #include <memory>
+#include "layers.h"
 
 namespace pattern {
+
+template<typename Base, unsigned int Layer = layer::total, typename Enable = void>
+class Pimpl : public Pimpl<Base,Layer-1> {
+public:
+    using Pimpl<Base,Layer-1>::Pimpl;
+    using Pimpl<Base,Layer-1>::operator=;
+};
+
+
     
-template<typename Base, typename Enable = void>
-class Pimpl : public Base {
+template<typename Base>
+class Pimpl<Base,layer::basic> : public Base {
 	std::shared_ptr<Base> base;
 public:
     const std::shared_ptr<Base>& impl() const { return base; }

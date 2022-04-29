@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include "type-traits.h"
+#include "layers.h"
 
 namespace pattern {
 
@@ -138,11 +139,6 @@ public:
     }    
 };
 
-
-namespace layer {
-    constexpr unsigned int basic = 0;
-    constexpr unsigned int total = 5;
-};
 
 template<unsigned int Layer, typename Self, typename... Bases>
 struct layer_condition {

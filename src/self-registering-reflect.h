@@ -156,11 +156,11 @@ public:
 */
 
 template<typename Base>
-class Pimpl<Base,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,int> {
+class Pimpl<Base,layer::self_registering,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,layer::self_registering-1> {
 public:
-    using Pimpl<Base,int>::Pimpl;
-    Pimpl(const std::string& type) : Pimpl<Base,int>(SelfRegisteringFactory<Base>::make_shared(type)) {}
-    using Pimpl<Base,int>::operator=;
+    using Pimpl<Base,layer::self_registering-1>::Pimpl;
+    Pimpl(const std::string& type) : Pimpl<Base,layer::self_registering-1>(SelfRegisteringFactory<Base>::make_shared(type)) {}
+    using Pimpl<Base,layer::self_registering-1>::operator=;
 
 protected:
     std::string xml_content(const std::string& prefix = "",xml_flag_type flags = 0) const override {
