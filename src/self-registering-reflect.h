@@ -75,7 +75,7 @@ struct layer_condition<layer::self_registering,Self,Bases...> {
 };
 
 template<typename Self, typename... Bases>
-class ReflectableChecked<layer::self_registering,true,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering-1,Self,Bases...> {
+class ReflectableChecked<layer::self_registering,true,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering,Self,Bases...> {
 public: 
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.

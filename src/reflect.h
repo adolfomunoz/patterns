@@ -92,7 +92,7 @@ public:
 };  
 
 template<typename Self, typename Base, typename... Bases>
-class ReflectableInheritance<Self,Base,Bases...>: Base, public ReflectableInheritance<Self,Bases...> {
+class ReflectableInheritance<Self,Base,Bases...>: public Base, public ReflectableInheritance<Self,Bases...> {
 public:
     using FirstBase = Base;
     using RestOfBases = ReflectableInheritance<Bases...>;
