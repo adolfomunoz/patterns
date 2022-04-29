@@ -21,6 +21,7 @@ public:
     virtual void load_content(rapidxml::xml_node<>* node) = 0;
     virtual const char* object_type_name() const = 0;
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
+    virtual ~SelfRegisteringReflectableBase() {}
 };
 
 

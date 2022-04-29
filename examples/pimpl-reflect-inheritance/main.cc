@@ -4,9 +4,6 @@
 #include <list>
 
 int main(int argc, char** argv) {
-    pattern::print_conditions<Circle,ShapeBase>();
-    pattern::print_conditions<Circle,void>();
-    
     {
         Shape shape = Circle(2.0);
         std::cout<<pattern::xml(shape)<<std::endl;
