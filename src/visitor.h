@@ -2,6 +2,8 @@
 
 #include <functional>
 
+namespace pattern {
+    
 template<typename... Visitables>
 class Visitor {
 public:
@@ -180,5 +182,7 @@ class Visitable : public Derived {
 public:
     VISITABLE_METHODS(Self)
 };
+
+}
 
 

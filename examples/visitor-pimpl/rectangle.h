@@ -3,7 +3,7 @@
 #include "shape.h"
 #include <cmath>
 
-class Rectangle: public pattern::Visitable<Rectangle,Shape> {
+class Rectangle: public pattern::Visitable<Rectangle,ShapeBase> {
     float width_,height_;
 public:
     Rectangle(float width = 1.0f, float height = 1.0f) : width_(width), height_(height) {}

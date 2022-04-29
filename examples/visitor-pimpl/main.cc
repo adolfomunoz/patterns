@@ -15,13 +15,13 @@ class PrintVisitor : public pattern::ConstVisitor<Circle,Rectangle> {
 int main(int argc, char** argv) {
     Rectangle rect(2.0,2.0);
 
-    Shape* s = &rect;
+    Shape s = rect; //It stores a copy of the rectangle
     
     PrintVisitor pv;
-    s->accept(pv);
+    s.accept(pv);
 
-    std::cout<<"Area = "<<s->apply([] (Rectangle& rect) { return rect.area(); }, [] (Circle& circ) { return circ.area(); })<<std::endl;
+    std::cout<<"Area = "<<s.apply([] (Rectangle& rect) { return rect.area(); }, [] (Circle& circ) { return circ.area(); })<<std::endl;
 
-    std::cout<<"Radius = "<<s->apply([] (Circle& circ) { return circ.radius(); }, -1.0f)<<std::endl;
+    std::cout<<"Radius = "<<s.apply([] (Circle& circ) { return circ.radius(); }, -1.0f)<<std::endl;
 }
 
