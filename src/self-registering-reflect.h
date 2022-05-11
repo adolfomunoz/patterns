@@ -32,7 +32,7 @@ template<typename Self, typename... Bases>
 class CheckedManySelfRegistering {}; //Should never happen
 
 template<typename Self, typename Base>
-class CheckedSelfRegistering<Self, Base, std::enable_if_t<!is_reflectable_v<Base> && std::is_abstract_v<Base> && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base> {
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<!std::is_abstract_v<Self> && !is_reflectable_v<Base> && std::is_abstract_v<Base> && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base> {
 };
 
 template<typename Self, typename... Bases>
@@ -43,7 +43,7 @@ class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base>
 };
 
 template<typename Self, typename Base>
-class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && std::is_abstract_v<Base>  && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base>, public CheckedSelfRegistering<Self,typename Base::FirstBase>, public CheckedSelfRegistering<Self,typename Base::RestOfBases> {
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<!std::is_abstract_v<Self> && is_reflectable_v<Base> && std::is_abstract_v<Base>  && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base>, public CheckedSelfRegistering<Self,typename Base::FirstBase>, public CheckedSelfRegistering<Self,typename Base::RestOfBases> {
 };
 
 
