@@ -3,7 +3,7 @@
 #include "shape.h"
 #include <cmath>
 
-class Circle : public pattern::Visitable<Circle,Shape> {
+class Circle : public pattern::Visitable<Circle,ShapeBase> {
     float radius_;
 public:
     Circle(float radius = 1.0f) : radius_(radius) {}
