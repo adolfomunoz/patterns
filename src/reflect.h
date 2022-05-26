@@ -220,6 +220,27 @@ public:
 template<typename Self, typename... Bases>
 class Reflectable : public ReflectableImpl<layer::total,Self,Bases...> { };
 
+template<typename C>
+struct has_init {
+private:
+    template<typename T>
+    static constexpr auto check(T*)
+    -> typename std::is_same<void,decltype(((T*)(nullptr))->init())>::type;  // attempt to call it and see if the return type is correct
+
+    template<typename>
+    static constexpr std::false_type check(...);
+
+    typedef decltype(check<C>(0)) type;
+
+public:
+    static constexpr bool value = type::value;
+};
+
+template<typename T>
+inline constexpr bool has_init_v = has_init<T>::value; 
+
+
+
 template<typename T>
 auto operator<<(std::ostream& os, const T& v) -> std::enable_if_t<is_reflectable_v<T>, std::ostream&> {
     v.for_each_attribute([&os] (const std::string& name, const auto& value) {
@@ -235,6 +256,7 @@ auto operator>>(std::istream& is, T& v) -> std::enable_if_t<is_reflectable_v<T>,
         //if (!name.empty()) os<<name<<"=";
         is>>value;
     });
+    if constexpr (has_init_v<T>) v.init();
     return is;
 }
     

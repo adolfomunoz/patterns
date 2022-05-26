@@ -288,6 +288,7 @@ void load_xml(T& t, const std::string& xml) {
     rapidxml::xml_document<> doc;
     doc.parse<0>(&copy[0]);
     XML<T>::load(t,&doc);    
+    if constexpr (has_init_v<T>) t.init();
 }
 
 template<typename T>

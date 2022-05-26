@@ -21,6 +21,7 @@ public:
     virtual void load_content(rapidxml::xml_node<>* node) = 0;
     virtual const char* object_type_name() const = 0;
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
+    virtual void init() { } //This init method helps other reflectable classes implement their own init methods for second-stage initialization
     virtual ~SelfRegisteringReflectableBase() {}
 };
 
@@ -180,8 +181,11 @@ protected:
     void load_commandline_content(int argc, char**argv, const std::string& name) override {
         this->impl()->load_commandline_content(argc,argv,name);
     }
-
 public:
+    void init() {
+        this->impl()->init();
+    }
+
     void set_type(const std::string& name) {
         auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
         if (ptr) { (*this) = ptr; }
