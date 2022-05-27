@@ -169,6 +169,8 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
     }
     
     CommandLine<T>::load(t,argc,argv,name);
+
+    if constexpr (has_init_v<T>) t.init();
 }
 
 template<typename T>
