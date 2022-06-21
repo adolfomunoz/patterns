@@ -79,11 +79,15 @@ public:
     inline static Constructor constructor;
     inline static bool is_registered = 
         SelfRegisteringFactory<Base>::register_constructor(type_traits<Self>::name(),&constructor);
-       
+
+    #ifdef __GNUC__
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-value"
+    #endif
     SelfRegisteringClass() { is_registered; } //This is so the template does not miss it. Cheap trick.
+    #ifdef __GNUC__
     #pragma GCC diagnostic pop
+    #endif
     virtual ~SelfRegisteringClass() {} 
 };
 
@@ -97,11 +101,15 @@ public:
     inline static Constructor constructor;
     inline static bool is_registered = 
         SelfRegisteringFactory<Base>::register_constructor(type_traits<Self>::name(),&constructor);
-       
+
+    #ifdef __GNUC__   
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-value"
+    #endif
     SelfRegisteringClass() { is_registered; } //This is so the template does not miss it. Cheap trick.
+    #ifdef __GNUC__
     #pragma GCC diagnostic pop
+    #endif
     virtual ~SelfRegisteringClass() {} 
 };
 

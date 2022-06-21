@@ -1,16 +1,19 @@
 #pragma once
 #include <vector>
 #include <list>
+#include <type_traits>
 
 namespace pattern {
+
     
 template<typename C, typename V = void>
 struct type_traits_impl {
     static const char* name() { return typeid(C).name(); }  
 };
 
+
 template<typename C>
-struct type_traits_impl<C,decltype(C::type_name(),void())> {
+struct type_traits_impl<C,std::void_t<decltype(C::type_name())>> {
     static const char* name() { return C::type_name(); }
 };
 
@@ -50,7 +53,7 @@ struct type_traits_impl<std::string,void> {
 };
 
 template<typename C>
-struct type_traits : type_traits_impl<std::decay_t<C>> { };
+struct type_traits : public type_traits_impl<std::decay_t<C>> { };
 
 template<typename T>
 struct is_collection_impl {
