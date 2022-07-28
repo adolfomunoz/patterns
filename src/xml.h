@@ -210,10 +210,13 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
 
 template<typename T>
 struct XML<T, std::enable_if_t<is_collection_v<T>>> {
-    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
+    static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) { 
         std::stringstream sstr;
-        for (const auto& item : t) {
-            sstr<<XML<std::decay_t<decltype(item)>>::get(item,name,prefix,flags);
+        if (!((flags & xml_reflect_attributes_from_stream) && 
+            (has_ostream_operator_v<decltype(t.front())>))) {
+            for (const auto& item : t) {
+                sstr<<XML<std::decay_t<decltype(item)>>::get(item,name,prefix,flags);
+            }
         }
         return sstr.str();
     } 
@@ -244,19 +247,38 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
                         }
                     }
                 }
+            } 
+            if constexpr (has_ostream_operator_v<decltype(t.front())>) { 
+                if (!att_name.empty()) {
+                    rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
+                    if (att) {
+                        std::string str(att->value(), att->value_size()); 
+                        std::istringstream ss(str);
+                        std::decay_t<decltype(t.front())> data;
+                        while (ss>>data) t.push_back(data);
+                    } 
+                }
             }
         }
     }
 
     static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
+        std::stringstream sstr;
         if constexpr (has_ostream_operator_v<T>) {
-            if (!name.empty()) {
-                std::stringstream sstr; 
-                sstr<<name<<"=\""<<t<<"\"";
-                return sstr.str();
+            if (!name.empty()) sstr<<name<<"=\""<<t<<"\"";
+        } else if constexpr (has_ostream_operator_v<decltype(t.front())>) {
+            if (flags & xml_reflect_attributes_from_stream) {
+                if (!name.empty()) {
+                    sstr<<name<<"=\""; bool first = true;
+                    for (const auto& item : t) {
+                        if (first) first = false; else sstr<<" ";
+                        sstr<<item;
+                    }
+                    sstr<<"\" "; 
+                }
             }
-        } 
-        return "";
+        }
+        return sstr.str();
     }       
 };
 
