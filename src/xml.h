@@ -182,7 +182,7 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         sstr<<prefix<<"<"<<type_traits<T>::name();
         if (name != "") sstr<<" name=\""<<name<<"\" ";
         if (flags & xml_reflect_attributes_from_stream) {
-            t.for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
+            t.for_each_attribute([&sstr,&flags] (const std::string& name, const auto& value) {
                 std::string s = XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags);
                 if (!s.empty()) sstr<<" "<<s;
             });

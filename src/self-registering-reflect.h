@@ -112,7 +112,7 @@ public:
         return type_traits<Self>::name();
     }
     
-    virtual void load_commandline_content(int argc, char**argv, const std::string& name) {
+    virtual void load_commandline_content(int argc, char**argv, const std::string& name) override {
         CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }     
 };
@@ -183,7 +183,7 @@ protected:
         this->impl()->load_commandline_content(argc,argv,name);
     }
 public:
-    void init() {
+    void init() override {
         this->impl()->init();
     }
 
