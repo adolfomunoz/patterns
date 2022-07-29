@@ -92,8 +92,10 @@ struct CommandLine<std::optional<T>> {
         for (int i = 1; i<argc; ++i) {
             auto tokens = tokenize(std::string(argv[i]),std::regex("="));
             if (tokens[0] == (std::string("--")+searchfor)) {
-                std::stringstream s(tokens[1]); 
-                T data; s>>data; t=data;
+                std::stringstream s(tokens[1]);
+                if constexpr (has_ostream_operator_v<T>) { //We need to account for lists, maybe
+                    T data; s>>data; t=data;
+                }
             }
         }
     }
