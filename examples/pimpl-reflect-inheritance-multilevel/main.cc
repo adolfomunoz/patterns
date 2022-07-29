@@ -1,5 +1,6 @@
 #include "circle.h"
 #include "rectangle.h"
+#include "regular.h"
 #include <iostream>
 #include <list>
 
@@ -14,6 +15,7 @@ int main(int argc, char** argv) {
         shapes.push_back(Circle(2.0));
         shapes.push_back(Rectangle(1.0,2.0));
         shapes.push_back(Square(3.0));
+        shapes.push_back(Pentagon(1.0));
         std::cout<<pattern::xml(shapes)<<std::endl;
     }
     

@@ -14,10 +14,5 @@ public:
     auto reflect() { return std::tie(width,height); } 
 };
 
-class Square : public pattern::Reflectable<Square,Rectangle> {
-public:
-    using pattern::Reflectable<Square,Rectangle>::Reflectable;
-    Square(float side = 1.0f) : Square(side,side) { }
-    static const char* type_name() { return "square"; }
-};
+
 
