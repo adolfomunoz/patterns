@@ -30,7 +30,8 @@ struct layer_condition<layer::visitable,Self,Bases...> {
 
 template<typename Self, typename... Bases>
 class ReflectableChecked<layer::visitable,true,Self,Bases...> : public ReflectableImpl<layer::visitable,Self,Bases...> {
-public: 
+public:
+    using ReflectableImpl<layer::visitable,Self,Bases...>::ReflectableImpl;
     VISITABLE_METHODS(Self)
 };
 

@@ -80,6 +80,7 @@ struct layer_condition<layer::self_registering,Self,Bases...> {
 template<typename Self, typename... Bases>
 class ReflectableChecked<layer::self_registering,true,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering,Self,Bases...> {
 public: 
+    using ReflectableImpl<layer::self_registering,Self,Bases...>::ReflectableImpl;
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.
     std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const override {

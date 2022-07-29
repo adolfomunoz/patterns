@@ -96,6 +96,8 @@ class ReflectableInheritance<Self,Base,Bases...>: public Base, public Reflectabl
 public:
     using FirstBase = Base;
     using RestOfBases = ReflectableInheritance<Bases...>;
+    using Base::Base; //By default it uses constructors from the base classes
+    using ReflectableInheritance<Self,Bases...>::ReflectableInheritance;
 
     /**
      * F is a function that can take a single parameter for any of the type of the bases.
@@ -121,6 +123,7 @@ class ReflectableInheritance<Self,Base>: public Base {
 public:
     using FirstBase = Base;
     using RestOfBases = void;
+    using Base::Base; //By default it uses constructors from the base classes
 
    /**
      * F is a function that can take a single parameter for any of the type of the bases.
@@ -160,14 +163,19 @@ template<unsigned int Layer, bool Condition, typename Self, typename... Bases>
 class ReflectableChecked;
 
 template<unsigned int Layer, typename Self, typename... Bases>
-class ReflectableImpl : public ReflectableChecked<Layer-1,layer_condition<Layer-1,Self,Bases...>::value,Self,Bases...> {};
+class ReflectableImpl : public ReflectableChecked<Layer-1,layer_condition<Layer-1,Self,Bases...>::value,Self,Bases...> {
+    using ReflectableChecked<Layer-1,layer_condition<Layer-1,Self,Bases...>::value,Self,Bases...>::ReflectableChecked;   
+};
 
 template<unsigned int Layer, bool Condition, typename Self, typename... Bases>
-class ReflectableChecked : public ReflectableImpl<Layer,Self,Bases...> {};
+class ReflectableChecked : public ReflectableImpl<Layer,Self,Bases...> {
+    using ReflectableImpl<Layer,Self,Bases...>::ReflectableImpl;
+};
 
 template<typename Self, typename... Bases>
 class ReflectableImpl<layer::basic,Self,Bases...> : public ReflectableInheritance<Self,Bases...> { 
 public: 
+    using ReflectableInheritance<Self,Bases...>::ReflectableInheritance;
     //vv The reflect method is here so we have an empty implementation by default but Self should
     //   have its own reflect method for its attributes.
     std::tuple<> reflect() { return std::tuple<>(); }
@@ -218,7 +226,9 @@ public:
  *     are reflectable themselves for inheritance of the reflectable properties as well.
  **/
 template<typename Self, typename... Bases>
-class Reflectable : public ReflectableImpl<layer::total,Self,Bases...> { };
+class Reflectable : public ReflectableImpl<layer::total,Self,Bases...> { 
+    using ReflectableImpl<layer::total,Self,Bases...>::ReflectableImpl;
+};
 
 template<typename C>
 struct has_init {
