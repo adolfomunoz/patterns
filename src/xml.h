@@ -133,6 +133,8 @@ struct XML {
 template<typename T>
 struct XML<std::optional<T>> {
     static void load(std::optional<T>& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        //We should find a global heuristic to check if something gets loaded or not so this
+        // gets less complex
         rapidxml::xml_node<>* found = XMLSearch<T>::find(node,att_name);
         if (found) {
             T data;
@@ -264,11 +266,11 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
 
     static std::string get_attribute(const T& t, const std::string& name = "", xml_flag_type flags = 0) {
         std::stringstream sstr;
-        if constexpr (has_ostream_operator_v<T>) {
-            if (!name.empty()) sstr<<name<<"=\""<<t<<"\"";
-        } else if constexpr (has_ostream_operator_v<decltype(t.front())>) {
-            if (flags & xml_reflect_attributes_from_stream) {
-                if (!name.empty()) {
+        if (!name.empty() && !t.empty()) {
+            if constexpr (has_ostream_operator_v<T>) {
+                sstr<<name<<"=\""<<t<<"\"";
+            } else if constexpr (has_ostream_operator_v<decltype(t.front())>) {
+                if (flags & xml_reflect_attributes_from_stream) {
                     sstr<<name<<"=\""; bool first = true;
                     for (const auto& item : t) {
                         if (first) first = false; else sstr<<" ";
