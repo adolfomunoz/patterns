@@ -250,7 +250,7 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
                     }
                 }
             } 
-            if constexpr (has_ostream_operator_v<decltype(t.front())>) { 
+            if constexpr (has_ostream_operator_v<typename T::value_type>) { 
                 if (!att_name.empty()) {
                     rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
                     if (att) {

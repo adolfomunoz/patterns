@@ -187,6 +187,7 @@ public:
         this->impl()->init();
     }
 
+    std::string type() const { return std::string(object_type_name()); }
     void set_type(const std::string& name) {
         auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
         if (ptr) { (*this) = ptr; }
@@ -266,7 +267,16 @@ public:
                 if (name.empty()) this->load_commandline_content(argc,argv,std::string(type_traits<Base>::name()));
             }
         }
-    }    
+    }
+
+/*
+    void clone_into_self() {
+        std::string x = this->xml();
+        rapidxml::xml_document<> doc;
+        doc.parse<0>(&x[0]);
+        load_xml(&doc);
+    }  */
+
     
     
 /**
