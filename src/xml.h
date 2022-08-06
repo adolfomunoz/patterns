@@ -130,6 +130,38 @@ struct XML {
     }
 };
 
+template<>
+struct XML<std::string> {
+    static void load(std::string& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
+        rapidxml::xml_node<>* found = XMLSearch<std::string>::find(node,att_name);
+        if (found) {
+            rapidxml::xml_attribute<>* value = found->first_attribute("value");
+            if (value) {
+                t = std::string(value->value(), value->value_size()); 
+            }
+        } else if (!att_name.empty()) {
+            rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
+            if (att) {
+                t = std::string(att->value(), att->value_size()); 
+            }
+        }        
+    } 
+    
+    static std::string get(const std::string& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
+        std::stringstream sstr;
+        sstr<<prefix<<"<string ";
+        if (name != "") sstr<<"name=\""<<name<<"\" ";
+        sstr<<"value=\""<<t<<"\" />\n";
+        return sstr.str();
+    }
+    
+    static std::string get_attribute(const std::string& t, const std::string& name = "", xml_flag_type flags = 0) {
+        std::stringstream sstr;
+        if (!name.empty()) sstr<<name<<"=\""<<t<<"\"";;
+        return sstr.str();
+    }        
+};
+
 template<typename T>
 struct XML<std::optional<T>> {
     static void load(std::optional<T>& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {

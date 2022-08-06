@@ -16,6 +16,12 @@ public:
     virtual ~ConstVisitor() {} 
 };
 
+template<>
+class Visitor<> : public ConstVisitor<> {
+public:
+    virtual ~Visitor() {} 
+};
+
 
 template<typename Visitable>
 class ConstVisitorImpl {
