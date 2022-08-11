@@ -122,21 +122,36 @@ struct CommandLine<T, std::enable_if_t<is_reflectable_v<T>>> {
 template<typename T>
 struct CommandLine<T, std::enable_if_t<is_collection_v<T>>> { 
     static void load(T& t, int argc, char** argv, const std::string& name = "") {
-        //We add only if something is going to be found, and only add one element
-        bool do_add = false;
         std::string searchfor = name;
         if (searchfor.empty()) searchfor=type_traits<T>::name(); 
-        for (int i = 1; i<argc; ++i) {
-            if (std::string(argv[i]).rfind(std::string("--")+searchfor,0) == 0)
-                do_add = true;
+        if constexpr (has_ostream_operator_v<typename T::value_type>) {
+            for (int i = 1; i<argc; ++i) {
+                if (std::string(argv[i])==(std::string("--")+searchfor)) {
+                    for (int j = i+1; (j<argc) && (argv[j][0]!='-');++j) {//Won't work for negative numbers
+                        typename T::value_type elem;
+                        std::stringstream sstr(argv[j]);
+                        sstr>>elem;
+                        t.push_back(elem);
+                    }
+                    i=argc;
+                }
+            }
         }
-        if (do_add) {
-            typename T::value_type elem; //Just loads the first element of the collection for now
-            CommandLine<typename T::value_type>::load(elem,argc,argv,name);
-            if constexpr (is_pimpl_v<typename T::value_type>) {
-                if (elem.impl()) t.push_back(elem); 
-            } else { 
-                t.push_back(elem);
+        else { 
+            //We add only if something is going to be found, and only add one element
+            bool do_add = false;
+            for (int i = 1; i<argc; ++i) {
+                if (std::string(argv[i]).rfind(std::string("--")+searchfor,0) == 0)
+                    do_add = true;
+            }
+            if (do_add) {
+                typename T::value_type elem; //Just loads the first element of the collection for now
+                CommandLine<typename T::value_type>::load(elem,argc,argv,name);
+                if constexpr (is_pimpl_v<typename T::value_type>) {
+                    if (elem.impl()) t.push_back(elem); 
+                } else { 
+                    t.push_back(elem);
+                }
             }
         }
     }    
