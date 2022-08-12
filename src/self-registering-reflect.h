@@ -257,7 +257,7 @@ public:
         } else {
             pattern::load_commandline(type,argc,argv,name+"-type");                
         }
-        if ((this->impl()) && (this->object_type_name() == type)) 
+        if ((this->impl()) && (type.empty() || (this->object_type_name() == type))) 
             load_commandline_content(argc,argv,name);
         else {
             auto ptr = SelfRegisteringFactory<Base>::make_shared(type);
