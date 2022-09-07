@@ -207,13 +207,17 @@ public:
             else
                 sstr<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\"";
             if (!name.empty()) sstr<<"name="<<name<<" ";
-            sstr<<xml_attributes(flags)<<">\n"<<xml_content(prefix,flags);
-
-            if (flags & xml_tag_as_derived)
-                sstr<<prefix<<"</"<<object_type_name()<<">\n";
-            else
-                sstr<<prefix<<"</"<<type_traits<Base>::name()<<">\n";
-
+            sstr<<xml_attributes(flags);
+            std::string content = xml_content(prefix,flags);
+            if (content.empty()) {
+                sstr<<"/>\n";
+            } else {
+                sstr<<content;
+                if (flags & xml_tag_as_derived)
+                    sstr<<prefix<<"</"<<object_type_name()<<">\n";
+                else
+                    sstr<<prefix<<"</"<<type_traits<Base>::name()<<">\n";
+            }
             return sstr.str();
         } else return "";
     }

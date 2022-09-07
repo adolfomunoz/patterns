@@ -66,12 +66,25 @@ namespace {
 }
 
 
-
-
-
 using xml_flag_type = unsigned char;
-constexpr xml_flag_type xml_reflect_attributes_from_stream = 1;
+/** 
+ * If activated, types that have operator<< will be output as attributes instead of children.
+ * If activated, the first nameless attribute will be output as content of the node (if there is no
+ * other content)
+ */ 
+constexpr xml_flag_type xml_reflect_attributes_from_stream = 1; 
+/** 
+ * If activated, polymorphic reflectable objetcs will have the tag of the derived class.
+ * If not activated, the output tag is the one of the base class, and the derived class will
+ * appear as attribute "type"
+ */
 constexpr xml_flag_type xml_tag_as_derived = 2;
+/**
+ * If activated, the values of types that have operator<< are output as node content
+ * If not activated, the values are output as attribute "value"
+ * This flag is ignored if "xml_reflect_attributes_from_stream" is activated 
+ */
+constexpr xml_flag_type xml_value_as_content = 4;
 
 template<typename T, typename Enable = void>
 struct XMLSearch {
@@ -104,6 +117,11 @@ struct XML {
                 std::string str(value->value(), value->value_size()); 
                 std::istringstream ss(str);
                 ss>>t;
+            } else {
+                //Reading the content of the node
+                std::string str(found->value(),found->value_size());
+                std::istringstream ss(str);
+                ss>>t;
             }
         } else if (!att_name.empty()) {
             rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
@@ -113,13 +131,16 @@ struct XML {
                 ss>>t;
             }
         }
-    } 
+    }
     
     static std::string get(const T& t, const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) {
         std::stringstream sstr;
         sstr<<prefix<<"<"<<type_traits<T>::name()<<" ";
         if (name != "") sstr<<"name=\""<<name<<"\" ";
-        sstr<<"value=\""<<t<<"\" />\n";
+        if (flags & xml_value_as_content)
+            sstr<<">"<<t<<"</"<<type_traits<T>::name()<<">\n";
+        else
+            sstr<<"value=\""<<t<<"\" />\n";
         return sstr.str();
     }
     
@@ -138,6 +159,8 @@ struct XML<std::string> {
             rapidxml::xml_attribute<>* value = found->first_attribute("value");
             if (value) {
                 t = std::string(value->value(), value->value_size()); 
+            } else {
+                t = std::string(found->value(), found->value_size());
             }
         } else if (!att_name.empty()) {
             rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
@@ -151,7 +174,10 @@ struct XML<std::string> {
         std::stringstream sstr;
         sstr<<prefix<<"<string ";
         if (name != "") sstr<<"name=\""<<name<<"\" ";
-        sstr<<"value=\""<<t<<"\" />\n";
+        if (flags & xml_value_as_content)
+            sstr<<">"<<t<<"</string>\n";
+        else
+            sstr<<"value=\""<<t<<"\" />\n";
         return sstr.str();
     }
     
@@ -219,14 +245,17 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
                 if (!s.empty()) sstr<<" "<<s;
             });
         }
-        sstr<<">\n";
+        std::stringstream content;
        
-        t.for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
+        t.for_each_attribute([&content,&prefix,&flags] (const std::string& name, const auto& value) {
             if ((!(flags & xml_reflect_attributes_from_stream)) || (
                 XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags).empty()))
-                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
+                content<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
         });
-        sstr<<prefix<<"</"<<type_traits<T>::name()<<">\n";
+        if (content.str().empty()) 
+            sstr<<"/>\n";
+        else
+            sstr<<">\n"<<content.str()<<prefix<<"</"<<type_traits<T>::name()<<">\n";
         return sstr.str();
     } 
 
@@ -291,8 +320,14 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
                         std::decay_t<decltype(t.front())> data;
                         while (ss>>data) t.push_back(data);
                     } 
-                }
-            }
+                } /* vv Omitted because we do not do the writing to content 
+                  else { //We load it from content 
+                    std::string str(node->value(), node->value_size()); 
+                    std::istringstream ss(str);
+                    std::decay_t<decltype(t.front())> data;
+                    while (ss>>data) t.push_back(data);
+                } */
+            } 
         }
     }
 
