@@ -12,13 +12,11 @@
 
 namespace pattern {
    
-class SelfRegisteringReflectableBase {
+class SelfRegisteringReflectableBase : public XMLAble {
 public: 
 //All these three are public because it is really hard to "friend" the corresponding Pimpl class below
 //but they should be protected.
-    virtual std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const = 0;
-    virtual std::string xml_attributes(xml_flag_type flags = 0) const = 0;
-    virtual void load_content(rapidxml::xml_node<>* node) = 0;
+    virtual void load_content(rapidxml::xml_node<>* found) = 0;
     virtual const char* object_type_name() const = 0;
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
     virtual void init() { } //This init method helps other reflectable classes implement their own init methods for second-stage initialization
@@ -81,33 +79,26 @@ template<typename Self, typename... Bases>
 class ReflectableChecked<layer::self_registering,true,Self,Bases...> : public CheckedManySelfRegistering<Self, Bases...>, public ReflectableImpl<layer::self_registering,Self,Bases...> {
 public: 
     using ReflectableImpl<layer::self_registering,Self,Bases...>::ReflectableImpl;
-//All these three are public because it is really hard to "friend" the corresponding Pimpl class below
-//but they should be protected.
-    std::string xml_content(const std::string& prefix = "", xml_flag_type flags = 0) const override {
-        std::stringstream sstr;
-        this->for_each_attribute([&sstr,&prefix,&flags] (const std::string& name, const auto& value) {
-            if ((!(flags & xml_reflect_attributes_from_stream)) || (
-                XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags).empty()))
-                sstr<<XML<std::decay_t<decltype(value)>>::get(value,name,prefix+"   ",flags);
-        });        return sstr.str();
+    virtual void load(rapidxml::xml_node<>* node, const std::string& att_name = "") override {
+        XML<Self>::load(static_cast<Self&>(*this),node,att_name);
+    }
+    virtual void load_content(rapidxml::xml_node<>* found) override {
+        if constexpr (is_reflectable_v<Self>)
+            XML<Self>::load_content(static_cast<Self&>(*this),found);
+    }
+    virtual bool generates(xml_flag_type flags = 0) const override {
+        return XML<Self>::generates(static_cast<const Self&>(*this),flags);
+    }
+    virtual std::string get_tag(const std::string&  name = "", xml_flag_type flags = 0) const override {
+        return XML<Self>::get_tag(static_cast<const Self&>(*this),name,flags);
+    } 
+    virtual std::string get_attributes(const std::string&  name = "", xml_flag_type flags = 0) const override {
+        return XML<Self>::get_attributes(static_cast<const Self&>(*this),name,flags);
+    }
+    virtual std::string get_content(const std::string&  name = "", const std::string& prefix = "", xml_flag_type flags = 0) const override {
+        return XML<Self>::get_content(static_cast<const Self&>(*this),name,prefix,flags);
     }
 
-    std::string xml_attributes(xml_flag_type flags = 0) const override {
-        std::stringstream sstr;
-        if (flags & xml_reflect_attributes_from_stream) {
-            this->for_each_attribute([&sstr,&flags] (const std::string& name, const auto& value) {
-                std::string s = XML<std::decay_t<decltype(value)>>::get_attribute(value,name,flags);
-                if (!s.empty()) sstr<<" "<<s;
-            });
-        }
-        return sstr.str();
-    }
-
-    void load_content(rapidxml::xml_node<>* node) override {
-        this->for_each_attribute([&node] (const std::string& name, auto& value) {
-            XML<std::decay_t<decltype(value)>>::load(value,node,name);
-        });          
-    }
     const char* object_type_name() const override {
         return type_traits<Self>::name();
     }
@@ -166,76 +157,19 @@ public:
     Pimpl(const std::string& type) : Pimpl<Base,layer::self_registering-1>(SelfRegisteringFactory<Base>::make_shared(type)) {}
     using Pimpl<Base,layer::self_registering-1>::operator=;
 
-protected:
-    std::string xml_content(const std::string& prefix = "",xml_flag_type flags = 0) const override {
-        return this->impl()->xml_content(prefix,flags);
+    virtual void load_content(rapidxml::xml_node<>* found) override{
+        return this->impl()->load_content(found);
     }
-    std::string xml_attributes(xml_flag_type flags = 0) const override {
-        return this->impl()->xml_attributes(flags);
-    }
-    void load_content(rapidxml::xml_node<>* node) override {
-        this->impl()->load_content(node);
-    }
-    const char* object_type_name() const override {
-        return this->impl()->object_type_name();
-    }
-    void load_commandline_content(int argc, char**argv, const std::string& name) override {
-        this->impl()->load_commandline_content(argc,argv,name);
-    }
-public:
-    void init() override {
-        this->impl()->init();
-    }
-
-    std::string type() const { return std::string(object_type_name()); }
-    void set_type(const std::string& name) {
-        auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
-        if (ptr) { (*this) = ptr; }
-    }
-    
-    static bool can_hold_type(const std::string& name) {
-        //Warning, this does not seem to work very well
-        return SelfRegisteringFactory<Base>::make_shared(name);
-    }
-    
-    std::string xml(const std::string& name = "", const std::string& prefix = "", xml_flag_type flags = 0) const {
-        if (this->impl()) {
-            std::stringstream sstr;
-            sstr<<prefix<<"<";
-            if (flags & xml_tag_as_derived)
-                sstr<<object_type_name();
-            else
-                sstr<<type_traits<Base>::name()<<" type=\""<<object_type_name()<<"\"";
-            if (!name.empty()) sstr<<"name="<<name<<" ";
-            sstr<<xml_attributes(flags);
-            std::string content = xml_content(prefix,flags);
-            if (content.empty()) {
-                sstr<<"/>\n";
-            } else {
-                sstr<<content;
-                if (flags & xml_tag_as_derived)
-                    sstr<<prefix<<"</"<<object_type_name()<<">\n";
-                else
-                    sstr<<prefix<<"</"<<type_traits<Base>::name()<<">\n";
-            }
-            return sstr.str();
-        } else return "";
-    }
-    
-    static std::string registered() {
-        return SelfRegisteringFactory<Base>::registered();
-    }
-        
-    void load_xml(rapidxml::xml_node<>* node, const std::string& att_name = "") {
-        if (!node) return;
+    virtual void load(rapidxml::xml_node<>* node, const std::string& att_name = "") override {
+       if (!node) return; //We actually need to load content... maybe get back from top, I dunno
         rapidxml::xml_node<>* found = nullptr;
         std::string loading_type = "";
         for (found = node->first_node(); found; found = found->next_sibling()) {
             rapidxml::xml_attribute<>* name = found->first_attribute("name");
-            if ((att_name.empty()) || ((name) && (att_name == std::string(name->value(),name->value_size())))) {
-                if (type_traits<Base>::name() == std::string(found->name(),found->name_size())) { 
+            if ((att_name.empty()) || ((name) && (att_name == std::string_view(name->value(),name->value_size())))) {
+                if (type_traits<Base>::name() == std::string_view(found->name(),found->name_size())) { 
                     rapidxml::xml_attribute<>* type = found->first_attribute("type");
-                    if (type) loading_type = std::string(type->value(),type->value_size());
+                    if (type) loading_type = std::string_view(type->value(),type->value_size());
                 } else loading_type = std::string(found->name(),found->name_size());
                 
                 if ((this->impl()) && (this->object_type_name() == loading_type)) {
@@ -252,7 +186,51 @@ public:
             }
         }
     }
+    virtual bool generates(xml_flag_type flags = 0) const override {
+        return (bool(this->impl()) && this->impl()->generates(flags)); 
+    }
+    virtual std::string get_tag(const std::string& name = "", xml_flag_type flags = 0) const override {
+        if (flags & xml_tag_as_derived)
+            return this->impl()->object_type_name();
+        else
+            return type_traits<Base>::name();   
+    } 
+    virtual std::string get_attributes(const std::string&  name = "", xml_flag_type flags = 0) const override {
+        std::stringstream sstr;
+        if (!(flags & xml_tag_as_derived)) sstr<<" type=\""<<this->impl()->object_type_name()<<"\" ";
+        sstr<<this->impl()->get_attributes(name,flags);
+        return sstr.str();
+    }
+    virtual std::string get_content(const std::string&  name = "", const std::string&  prefix = "", xml_flag_type flags = 0) const override {
+        return this->impl()->get_content(name,prefix,flags);
+    }
+
+protected:
+    const char* object_type_name() const override {
+        return this->impl()->object_type_name();
+    }
+    void load_commandline_content(int argc, char**argv, const std::string& name) override {
+        this->impl()->load_commandline_content(argc,argv,name);
+    }
+public:
+    void init() override {
+        this->impl()->init();
+    }
+    std::string type() const { return std::string(object_type_name()); }
+    void set_type(const std::string& name) {
+        auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
+        if (ptr) { (*this) = ptr; }
+    }
     
+    static bool can_hold_type(const std::string& name) {
+        //Warning, this does not seem to work very well
+        return SelfRegisteringFactory<Base>::make_shared(name);
+    }
+      
+    static std::string registered() {
+        return SelfRegisteringFactory<Base>::registered();
+    }
+        
     void load_commandline(int argc, char** argv, const std::string& name = "") {
         std::string type;
         if (name.empty()) { //Load directly or by putting the type name in the command line

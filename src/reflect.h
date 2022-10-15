@@ -269,6 +269,7 @@ auto operator>>(std::istream& is, T& v) -> std::enable_if_t<is_reflectable_v<T>,
     if constexpr (has_init_v<T>) v.init();
     return is;
 }
+
     
 
 
