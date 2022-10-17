@@ -190,10 +190,15 @@ std::string xml(const T& t, const std::string& name = "", const std::string& pre
     if (XML<T>::generates(t,flags)) {
         std::stringstream sstr;
         std::string tag = XML<T>::get_tag(t,name,flags);
-        sstr<<prefix<<"<"<<tag<<" "<<XML<T>::get_attributes(t,name,flags);
+        std::string attributes = XML<T>::get_attributes(t,name,flags);
         std::string content = XML<T>::get_content(t,name,prefix,flags);
-        if (content.empty()) sstr<<" />\n";
-        else sstr<<">"<<content<<"</"<<tag<<">\n";
+        if (tag.empty()) sstr<<content<<"\n";
+        else {
+            sstr<<prefix<<"<"<<tag;
+            if (!attributes.empty()) sstr<<" "<<attributes;
+            if (content.empty()) sstr<<"/>\n";
+            else sstr<<">\n"<<content<<prefix<<"</"<<tag<<">\n";
+        }
         return sstr.str();
     } else return "";
 }
@@ -315,7 +320,7 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
     }
 
     static std::string get_tag(const T& t, std::string_view name = "", xml_flag_type flags = 0) {
-        return type_traits<T>::name();
+        return "";
     }
 
     static std::string get_attributes(const T& t, std::string_view name = "", xml_flag_type flags = 0) {
@@ -334,7 +339,7 @@ struct XML<T, std::enable_if_t<is_collection_v<T>>> {
         }
         std::stringstream sstr;
         for (const auto& item : t) {
-            sstr<<xml(item,name,prefix+"   ",flags);
+            sstr<<xml(item,name,prefix,flags);
         }
         return sstr.str();
     }      

@@ -55,6 +55,7 @@ struct type_traits_impl<std::string,void> {
 template<typename C>
 struct type_traits : public type_traits_impl<std::decay_t<C>> { };
 
+
 template<typename T>
 struct is_collection_impl {
     static constexpr bool value = false;
