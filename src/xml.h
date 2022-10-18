@@ -53,6 +53,31 @@ namespace {
     
     template<typename T>
     inline constexpr bool has_ostream_operator_v = has_ostream_operator<T>::value;   
+
+    template <typename T, typename = void>
+    struct has_istream_operator_impl : std::false_type {};
+
+    template <typename T>
+    struct has_istream_operator_impl<T, 
+           std::void_t<decltype(std::declval<std::istream&>()>>std::declval<T&>()) >> : std::true_type {};
+
+    template<typename T>
+    struct has_istream_operator {
+        static constexpr bool value = has_istream_operator_impl<T>::value;
+    };
+    
+    template<typename T>
+    inline constexpr bool has_istream_operator_v = has_istream_operator<T>::value;   
+
+    template<typename T>
+    struct has_stream_operators {
+        static constexpr bool value = has_ostream_operator<T>::value && has_istream_operator<T>::value;
+    };
+    
+    template<typename T>
+    inline constexpr bool has_stream_operators_v = has_stream_operators<T>::value;   
+
+
 }
 
 
@@ -86,7 +111,7 @@ struct IO<std::string> {
 };
 
 template<typename T>
-struct IO<T,std::enable_if_t<has_ostream_operator_v<T>>> {
+struct IO<T,std::enable_if_t<has_stream_operators_v<T>>> {
     static constexpr bool available = true;
     static std::string to_string(const T& t) {
         std::stringstream sstr;
@@ -127,16 +152,20 @@ struct IO<C,std::enable_if_t<is_collection_v<C>>> {
             }
             return sstr.str();
         } else return "";
-    }
+   }
    static bool from_string(C& c, std::string_view s) {
         c.clear();
-        const auto end = s.end(); auto to = s.begin(); decltype(to) from;
-        while((from = std::find_if(to, end, [](char c){ return !std::isspace(c); })) != end) {
-            to = std::find_if(from, end, [](char c){ return std::isspace(c); });
-            std::cerr<<"LOADING FROM "<<std::string(from,to)<<"  MISSING "<<std::string(to,end)<<std::endl;
+        if constexpr (has_istream_operator_v<typename C::value_type>) { //For the particular case of istreaming, so we do not depend on separation by spaces
+            std::stringstream sstr((std::string(s)));
             typename C::value_type item;
-            if (IO<typename C::value_type>::from_string(item,std::string(from,to))) c.push_back(item);
-            std::cerr<<"LOADED "<<item<<std::endl;
+            while (sstr>>item) c.push_back(item);
+        } else {
+            const auto end = s.end(); auto to = s.begin(); decltype(to) from;
+            while((from = std::find_if(to, end, [](char c){ return !std::isspace(c); })) != end) {
+                to = std::find_if(from, end, [](char c){ return std::isspace(c); });
+                typename C::value_type item;
+                if (IO<typename C::value_type>::from_string(item,std::string(from,to))) c.push_back(item);
+            }
         }
         return true;
     }

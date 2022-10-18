@@ -158,9 +158,7 @@ public:
     using Pimpl<Base,layer::self_registering-1>::operator=;
 
     virtual void load_content(rapidxml::xml_node<>* found) override{
-        std::cerr<<"Loading content of "<<this->impl()->object_type_name()<<std::endl;
         return this->impl()->load_content(found);
-        std::cerr<<"Loaded content of "<<this->impl()->object_type_name()<<std::endl;
     }
     virtual void load(rapidxml::xml_node<>* node, const std::string& att_name = "") override {
        if (!node) return; //We actually need to load content... maybe get back from top, I dunno
@@ -173,7 +171,6 @@ public:
                     rapidxml::xml_attribute<>* type = found->first_attribute("type");
                     if (type) loading_type = std::string_view(type->value(),type->value_size());
                 } else loading_type = std::string(found->name(),found->name_size());
-                std::cerr<<"LOADING "<<loading_type<<std::endl;
                 if ((this->impl()) && (this->object_type_name() == loading_type)) {
                     load_content(found);
                     return;
@@ -183,7 +180,7 @@ public:
                         (*this) = ptr;
                         load_content(found);
                         return;
-                    } else { std::cerr<<"Does not exist"<<std::endl; }
+                    } 
                 }
             }
         }
@@ -192,7 +189,6 @@ public:
         return (bool(this->impl()) && this->impl()->generates(flags)); 
     }
     virtual std::string get_tag(const std::string& name = "", xml_flag_type flags = 0) const override {
-        std::cerr<<"WRITING "<<this->impl()->object_type_name()<<std::endl;
         if (flags & xml_tag_as_derived)
             return this->impl()->object_type_name();
         else
