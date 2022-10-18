@@ -128,13 +128,15 @@ struct IO<C,std::enable_if_t<is_collection_v<C>>> {
             return sstr.str();
         } else return "";
     }
-    static bool from_string(C& c, std::string_view s) {
+   static bool from_string(C& c, std::string_view s) {
         c.clear();
         const auto end = s.end(); auto to = s.begin(); decltype(to) from;
         while((from = std::find_if(to, end, [](char c){ return !std::isspace(c); })) != end) {
             to = std::find_if(from, end, [](char c){ return std::isspace(c); });
+            std::cerr<<"LOADING FROM "<<std::string(from,to)<<"  MISSING "<<std::string(to,end)<<std::endl;
             typename C::value_type item;
             if (IO<typename C::value_type>::from_string(item,std::string(from,to))) c.push_back(item);
+            std::cerr<<"LOADED "<<item<<std::endl;
         }
         return true;
     }
@@ -235,7 +237,8 @@ struct XML<T, std::enable_if_t<is_reflectable_v<T>>> {
         if (flags & xml_reflect_attributes_from_stream) {
             t.for_each_attribute([&sstr] (const std::string& name, const auto& value) {
                 if constexpr (IO<std::decay_t<decltype(value)>>::available) {
-                    if (!name.empty()) sstr<<name<<"=\""<<IO<std::decay_t<decltype(value)>>::to_string(value)<<"\" ";
+                    std::string ts = IO<std::decay_t<decltype(value)>>::to_string(value);
+                    if ((!name.empty()) && (!ts.empty())) sstr<<name<<"=\""<<ts<<"\" ";
                 }
             });
         }  
