@@ -194,6 +194,9 @@ struct XML<T,std::enable_if_t<IO<T>::available && !is_collection_v<T> && !is_ref
             //If there is no full node with this item, we try to find it as attribute of the "parent" node
             rapidxml::xml_attribute<>* att = node->first_attribute(att_name.c_str());
             if (att) IO<T>::from_string(t,std::string_view(att->value(),att->value_size()));
+        } else if (node->value_size()>0) {
+            //If it has no name and has not been loaded before we try to load it from content
+            IO<T>::from_string(t,std::string_view(node->value(),node->value_size()));
         }
     }
 
