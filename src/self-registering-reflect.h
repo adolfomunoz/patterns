@@ -155,6 +155,7 @@ class Pimpl<Base,layer::self_registering,std::enable_if_t<std::is_base_of_v<Self
 public:
     using Pimpl<Base,layer::self_registering-1>::Pimpl;
     Pimpl(const std::string& type) : Pimpl<Base,layer::self_registering-1>(SelfRegisteringFactory<Base>::make_shared(type)) {}
+    Pimpl(const char* type) : Pimpl(std::string(type)) {}
     using Pimpl<Base,layer::self_registering-1>::operator=;
 
     virtual void load_content(rapidxml::xml_node<>* found) override{
