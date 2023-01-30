@@ -38,7 +38,7 @@ namespace {
      * @param re
      * @return std::vector<std::string>
      */
-    std::vector<std::string> tokenize(
+    inline std::vector<std::string> tokenize(
                          const std::string str,
                               const std::regex re)
     {
@@ -58,7 +58,7 @@ namespace {
         return tokenized;
     }
     
-    void replace_string(std::string& subject, const std::string& search,
+    inline void replace_string(std::string& subject, const std::string& search,
                           const std::string& replace) {
         size_t pos = 0;
         while ((pos = subject.find(search, pos)) != std::string::npos) {
