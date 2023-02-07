@@ -82,7 +82,7 @@ namespace {
 
 
 
-rapidxml::xml_node<>* find_xml_node(rapidxml::xml_node<>* node, const std::string& tag, std::string_view att_name = "") {
+inline rapidxml::xml_node<>* find_xml_node(rapidxml::xml_node<>* node, const std::string& tag, std::string_view att_name = "") {
     if (!node) return nullptr;
     rapidxml::xml_node<>* found = nullptr; 
     for (found = node->first_node(tag.c_str()); found; found = found->next_sibling(tag.c_str())) {
