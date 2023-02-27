@@ -4,6 +4,7 @@
 #include <string>
 #include "type-traits.h"
 #include "layers.h"
+#include "io.h"
 
 namespace pattern {
 
@@ -213,6 +214,24 @@ public:
                     base.for_each_attribute(f);
             });
         }
+    }
+
+    virtual std::string get_attribute(const std::string& n) const {
+        std::string out;
+        for_each_attribute([&n,&out] (const std::string& name, auto& value) {
+                if constexpr (IO<std::decay_t<decltype(value)>>::available) {
+                    if (name == n) out = IO<std::decay_t<decltype(value)>>::to_string(value);
+                }
+            });
+        return out;
+    }
+
+    virtual void set_attribute(const std::string& n, const std::string& v) {
+        for_each_attribute([&n,&v] (const std::string& name, auto& value) {
+                if constexpr (IO<std::decay_t<decltype(value)>>::available) {
+                    if (name == n) IO<std::decay_t<decltype(value)>>::from_string(value,v);
+                }
+            });
     }
 };
 

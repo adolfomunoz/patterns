@@ -20,6 +20,12 @@ public:
     virtual const char* object_type_name() const = 0;
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
     virtual void init() { } //This init method helps other reflectable classes implement their own init methods for second-stage initialization
+    
+    //This is overriden by reflectable classes but we need it here on the base class
+    virtual std::string get_attribute(const std::string& n) const { return ""; }
+    //This is overriden by reflectable classes but we need it here on the base class
+    virtual void set_attribute(const std::string& n, const std::string& v) { }
+
     virtual ~SelfRegisteringReflectableBase() {}
 };
 
@@ -157,6 +163,14 @@ public:
     Pimpl(const std::string& type) : Pimpl<Base,layer::self_registering-1>(SelfRegisteringFactory<Base>::make_shared(type)) {}
     Pimpl(const char* type) : Pimpl(std::string(type)) {}
     using Pimpl<Base,layer::self_registering-1>::operator=;
+
+    virtual std::string get_attribute(const std::string& n) const {
+        return this->impl()->get_attribute(n);
+    }
+
+    virtual void set_attribute(const std::string& n, const std::string& v) {
+        this->impl()->set_attribute(n,v);
+    }
 
     virtual void load_content(rapidxml::xml_node<>* found) override{
         return this->impl()->load_content(found);
