@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <cassert>
 #include "layers.h"
 
 namespace pattern {
@@ -18,7 +19,10 @@ template<typename Base>
 class Pimpl<Base,layer::basic> : public Base {
 	std::shared_ptr<Base> base;
 public:
-    const std::shared_ptr<Base>& impl() const { return base; }
+    const std::shared_ptr<Base>& impl() const { 
+        assert(base != nullptr); //We make sure that it is not a null ptr
+        return base; 
+    }
 
     template<typename T> 
     T& cast_static() { return static_cast<T&>(*base); }
@@ -27,12 +31,18 @@ public:
     template<typename T>
     bool instance_of() const { return bool(std::dynamic_pointer_cast<T>(base)); }
     template<typename T> 
-    T& cast_dynamic() { return *std::dynamic_pointer_cast<T>(base); }
+    T& cast_dynamic() { 
+        assert(this->instance_of<T>());
+        return *std::dynamic_pointer_cast<T>(base); 
+    }
     template<typename T>
-    const T& cast_dynamic() const { return *std::dynamic_pointer_cast<T>(base); }
+    const T& cast_dynamic() const { 
+        assert(this->instance_of<T>());
+        return *std::dynamic_pointer_cast<T>(base); 
+    }
  
     
-    Pimpl() {}
+    Pimpl():base(nullptr) {}
     
 	template<typename I, typename = std::enable_if_t<std::is_base_of_v<Base,I>>>
 	Pimpl(I&& impl) : 
