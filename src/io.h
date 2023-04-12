@@ -100,9 +100,9 @@ struct IO<C,std::enable_if_t<is_collection_v<C>>> {
         if constexpr (available) {
             std::stringstream sstr; bool first = true;
             for (const auto& item : c) {
-                sstr<<IO<typename C::value_type>::to_string(item);
                 if (first) { first = false; }
                 else sstr<<" ";
+                sstr<<IO<typename C::value_type>::to_string(item);
             }
             return sstr.str();
         } else return "";
