@@ -164,11 +164,11 @@ public:
     Pimpl(const char* type) : Pimpl(std::string(type)) {}
     using Pimpl<Base,layer::self_registering-1>::operator=;
 
-    virtual std::string get_attribute(const std::string& n) const {
+    virtual std::string get_attribute(const std::string& n) const override {
         return this->impl()->get_attribute(n);
     }
 
-    virtual void set_attribute(const std::string& n, const std::string& v) {
+    virtual void set_attribute(const std::string& n, const std::string& v) override {
         this->impl()->set_attribute(n,v);
     }
 
