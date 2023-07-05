@@ -186,7 +186,7 @@ public:
                     rapidxml::xml_attribute<>* type = found->first_attribute("type");
                     if (type) loading_type = std::string_view(type->value(),type->value_size());
                 } else loading_type = std::string(found->name(),found->name_size());
-                if ((this->impl()) && (this->object_type_name() == loading_type)) {
+                if ((!this->is_null()) && (this->object_type_name() == loading_type)) {
                     load_content(found);
                     return;
                 } else {
@@ -201,7 +201,7 @@ public:
         }
     }
     virtual bool generates(xml_flag_type flags = 0) const override {
-        return (bool(this->impl()) && this->impl()->generates(flags)); 
+        return ((!this->is_null()) && this->impl()->generates(flags)); 
     }
     virtual std::string get_tag(const std::string& name = "", xml_flag_type flags = 0) const override {
         if (flags & xml_tag_as_derived)

@@ -19,6 +19,7 @@ template<typename Base>
 class Pimpl<Base,layer::basic> : public Base {
 	std::shared_ptr<Base> base;
 public:
+    bool is_null() const noexcept { return base == nullptr; } 
     const std::shared_ptr<Base>& impl() const { 
         assert(base != nullptr); //We make sure that it is not a null ptr
         return base; 
