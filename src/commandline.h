@@ -84,6 +84,21 @@ struct CommandLine {
     }
 };
 
+template<>
+struct CommandLine<bool> {
+    static void load(bool& t, int argc, char** argv, const std::string& name = "") {
+        std::string searchfor = name;
+        if (searchfor.empty()) searchfor="bool";
+        for (int i = 1; i<argc; ++i) {
+            auto tokens = tokenize(std::string(argv[i]),std::regex("="));
+            if (tokens[0] == (std::string("--")+searchfor)) {
+                if ((tokens.size() < 2) || (tokens[1]=="true")) t=true;
+                else t=false; 
+            }
+        }
+    }
+};
+
 template<typename T>
 struct CommandLine<std::optional<T>> {
     static void load(std::optional<T>& t, int argc, char** argv, const std::string& name = "") {

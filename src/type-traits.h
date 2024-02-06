@@ -11,6 +11,10 @@ struct type_traits_impl {
     static const char* name() { return typeid(C).name(); }  
 };
 
+template<>
+struct type_traits_impl<bool,void> {
+    static const char* name() { return "bool"; }
+};
 
 template<typename C>
 struct type_traits_impl<C,std::void_t<decltype(C::type_name())>> {

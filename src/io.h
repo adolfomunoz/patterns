@@ -64,6 +64,16 @@ struct IO<std::string> {
     static bool from_string(std::string& t, std::string_view s) { t=s; return true; }
 };
 
+template<>
+struct IO<bool> {
+    static constexpr bool available = true;
+    static std::string to_string(bool t) { return (t?"true":"false"); } 
+    static bool from_string(bool& t, std::string_view s) {
+        if ((s=="true") || (s=="True") || (s=="TRUE")) { t = true; return true; }
+        else if ((s=="false") || (s=="False") || (s=="FALSE")) { t = false; return true; }
+        else return false; }
+};
+
 template<typename T>
 struct IO<T,std::enable_if_t<has_stream_operators_v<T>>> {
     static constexpr bool available = true;
