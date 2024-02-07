@@ -138,15 +138,19 @@ template<typename T>
 struct CommandLine<T, std::enable_if_t<is_collection_v<T>>> { 
     static void load(T& t, int argc, char** argv, const std::string& name = "") {
         std::string searchfor = name;
-        if (searchfor.empty()) searchfor=type_traits<T>::name(); 
+        if (searchfor.empty()) searchfor=type_traits<T>::name();
         if constexpr (has_ostream_operator_v<typename T::value_type>) {
             for (int i = 1; i<argc; ++i) {
                 if (std::string(argv[i])==(std::string("--")+searchfor)) {
-                    for (int j = i+1; (j<argc) && (argv[j][0]!='-');++j) {//Won't work for negative numbers
-                        typename T::value_type elem;
-                        std::stringstream sstr(argv[j]);
-                        sstr>>elem;
-                        t.push_back(elem);
+                    for (int j = i+1; j<argc;++j) {
+                        std::string arg(argv[j]);
+                        if ((arg.size() >= 2) && (arg.substr(0,2) == "--")) j=argc;
+                        else {
+                            typename T::value_type elem;
+                            std::stringstream sstr(arg);
+                            sstr>>elem;
+                            t.push_back(elem);
+                        }
                     }
                     i=argc;
                 }
@@ -185,7 +189,7 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
     std::string xmlstring;
     for (int i = 1; i<argc; ++i) {
         std::string arg(argv[i]);
-        if (arg.substr(arg.length()-4,4) == ".xml") {
+        if ((arg.size()>4) && (arg.substr(arg.length()-4,4) == ".xml")) {
             std::ifstream in(arg);
             if (in.is_open()) {
                 std::ostringstream sstr;
