@@ -1,7 +1,7 @@
 #pragma once
 #include "io.h"
 #include "reflect.h"
-#include <rapidxml/rapidxml.hpp>
+#include "rapidxml.h"
 
 
 
@@ -78,7 +78,13 @@ struct XML<T,std::enable_if_t<IO<T>::available && !is_collection_v<T> && !is_ref
             if (att) IO<T>::from_string(t,std::string_view(att->value(),att->value_size()));
         } else if (node->value_size()>0) {
             //If it has no name and has not been loaded before we try to load it from content
-            IO<T>::from_string(t,std::string_view(node->value(),node->value_size()));
+            std::stringstream whole;
+            whole<<std::string_view(node->value(),node->value_size());
+            //This is for the CDATA and the subnodes, if any
+            for (rapidxml::xml_node<> *child = node->first_node(); child; child = child->next_sibling()) {
+                rapidxml::print(std::ostream_iterator<char>(whole), *child, rapidxml::print_no_indenting);
+            }
+            IO<T>::from_string(t,whole.str());
         }
     }
 

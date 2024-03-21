@@ -83,7 +83,7 @@ struct IO<T,std::enable_if_t<has_stream_operators_v<T>>> {
         return sstr.str();
     }
     static bool from_string(T& t, std::string_view s) {
-        std::istringstream sstr((std::string(s)));
+        std::istringstream sstr((std::string(s)));      
         sstr>>t;
         return true;
     }
