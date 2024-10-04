@@ -1,5 +1,5 @@
+cmake_minimum_required(VERSION 3.15)
 project(pattern)
-cmake_minimum_required(VERSION 3.10)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -23,5 +23,6 @@ add_executable(pimpl-reflect-inheritance-multilevel examples/pimpl-reflect-inher
 add_executable(pimpl-reflect-inheritance-init examples/pimpl-reflect-inheritance-init/main.cc)
 add_executable(visitor-reflectable examples/visitor-reflectable/main.cc)
 add_executable(visitor-pimpl examples/visitor-pimpl/main.cc)
+add_executable(visitor-generic-pimpl examples/visitor-generic-pimpl/main.cc)
 add_executable(commandline examples/commandline/main.cc)
 
