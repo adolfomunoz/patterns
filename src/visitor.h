@@ -76,7 +76,6 @@ public:
     void visit() {};
 };
 
-
 namespace detail {
     template<typename T>
     struct function_traits_impl : public function_traits_impl<decltype(&T::operator())> {
@@ -141,6 +140,58 @@ public:
     }
 };
 
+template<typename ReturnType, typename Function, typename... Types>
+class GenericFunctionVisitor {
+// We don't do this
+};
+
+template<typename ReturnType, typename Function, typename Type>
+class GenericFunctionVisitor<ReturnType, Function, Type> : public Visitor<>, public VisitorImpl<Type> {
+protected:
+    Function function;
+    ReturnType returned_type;
+public:
+    GenericFunctionVisitor(Function&& f) : function(std::move(f)) {}
+    GenericFunctionVisitor(const Function& f) : function(f) {}
+    void visit(Type& type) override {
+        this->returned_type = function(type);
+    }
+};
+
+template<typename Function, typename Type>
+class GenericFunctionVisitor<void, Function, Type> : public Visitor<>, public VisitorImpl<Type> {
+protected:
+    Function function;
+public:
+    GenericFunctionVisitor(Function&& f) : function(std::move(f)) {}
+    GenericFunctionVisitor(const Function& f) : function(f) {}
+    void visit(Type& type) override {
+        function(type);
+    }
+};
+
+template<typename ReturnType, typename Function, typename Type, typename Type2,  typename... Types>
+class GenericFunctionVisitor<ReturnType, Function, Type, Type2, Types...> : public VisitorImpl<Type>, public GenericFunctionVisitor<ReturnType, Function, Type2, Types...> {
+public:
+    using GenericFunctionVisitor<ReturnType, Function, Type2, Types...>::visit;
+    using GenericFunctionVisitor<ReturnType, Function, Type2, Types...>::GenericFunctionVisitor;
+    void visit(Type& type) override {
+        this->returned_type = GenericFunctionVisitor<Function,Type2,Types...>::function(type);
+    }
+};
+
+template<typename Function, typename Type, typename Type2, typename... Types>
+class GenericFunctionVisitor<void, Function, Type, Type2, Types...> : public VisitorImpl<Type>, public GenericFunctionVisitor<void, Function, Type2, Types...> {
+public:
+    using GenericFunctionVisitor<void, Function, Type2, Types...>::visit;
+    using GenericFunctionVisitor<void, Function, Type2, Types...>::GenericFunctionVisitor;
+    void visit(Type& type) override {
+        GenericFunctionVisitor<void,Function,Type2,Types...>::function(type);
+    }
+};
+
+
+
 
 class VisitableBase {
 public:
@@ -161,7 +212,21 @@ public:
         if constexpr (!std::is_same_v<typename detail::function_traits<Function>::result_type,void>) return visitor.returned_value();
    }
 
+   template<typename... Types, typename Function>
+   auto apply_for(Function&& f) {
+        using ReturnType = std::decay_t<decltype(f(0))>;
+        GenericFunctionVisitor<ReturnType,Function,Types...> visitor(std::forward<Function>(f));
+        this->accept(visitor);
+        if constexpr (!std::is_same_v<ReturnType,void>) return visitor.returned_value();
+   }
 
+   template<typename... Types, typename Function>
+   auto apply_for(Function&& f) const {
+        using ReturnType = std::decay_t<decltype(f(0))>;
+        GenericFunctionVisitor<ReturnType,Function,Types...> visitor(std::forward<Function>(f));
+        this->accept(visitor);
+        if constexpr (!std::is_same_v<ReturnType,void>) return visitor.returned_value();
+   }
 };
 
 #define VISITABLE_METHODS(Self) \
@@ -174,7 +239,7 @@ public:
     void accept(ConstVisitor<>& v) const override {\
         ConstVisitorImpl<Self>* specific = dynamic_cast<ConstVisitorImpl<Self>*>(&v);\
         if (specific) this->accept(*specific);\
-    }\
+    }
 
 /* This collides with the useful apply definition. 
  * It is more efficient but neglects the usefulness of the visitor by hiding it.
