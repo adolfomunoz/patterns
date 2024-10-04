@@ -212,18 +212,18 @@ public:
         if constexpr (!std::is_same_v<typename detail::function_traits<Function>::result_type,void>) return visitor.returned_value();
    }
 
-   template<typename... Types, typename Function>
+   template<typename Type, typename... Types, typename Function>
    auto apply_for(Function&& f) {
-        using ReturnType = std::decay_t<decltype(f(0))>;
-        GenericFunctionVisitor<ReturnType,Function,Types...> visitor(std::forward<Function>(f));
+        using ReturnType = std::decay_t<decltype(f(std::declval<Type>()))>;
+        GenericFunctionVisitor<ReturnType,Function,Type,Types...> visitor(std::forward<Function>(f));
         this->accept(visitor);
         if constexpr (!std::is_same_v<ReturnType,void>) return visitor.returned_value();
    }
 
-   template<typename... Types, typename Function>
+   template<typename Type, typename... Types, typename Function>
    auto apply_for(Function&& f) const {
-        using ReturnType = std::decay_t<decltype(f(0))>;
-        GenericFunctionVisitor<ReturnType,Function,Types...> visitor(std::forward<Function>(f));
+        using ReturnType = std::decay_t<decltype(f(std::declval<Type>()))>;
+        GenericFunctionVisitor<ReturnType,Function,Type,Types...> visitor(std::forward<Function>(f));
         this->accept(visitor);
         if constexpr (!std::is_same_v<ReturnType,void>) return visitor.returned_value();
    }
