@@ -183,6 +183,16 @@ struct CommandLine<T, std::enable_if_t<has_load_commandline_v<T>>> {
     }    
 };
 
+/**
+ * Contains a default value
+ */
+struct Default : public ReflectableImpl<layer::basic,Default> {
+    std::string name, value;
+    static const char* type_name() { return "default"; }
+    auto reflect() { return std::tie(name,value); }
+    auto reflect_names() const { return std::tuple("name","value"); }    
+}; 
+
 
 template<typename T>
 void load_commandline(T& t, int argc, char** argv, const std::string& name = "") { 
@@ -192,9 +202,14 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
         if ((arg.size()>4) && (arg.substr(arg.length()-4,4) == ".xml")) {
             std::ifstream in(arg);
             if (in.is_open()) {
+                std::list<Default> defaults;
                 std::ostringstream sstr;
                 sstr << in.rdbuf();
                 xmlstring = sstr.str();
+                load_xml(defaults,xmlstring);
+                for (const auto& d : defaults) {
+                    replace_string(xmlstring,std::string("$")+d.name,d.value);
+                }
                 for (int j = 1; j<argc; ++j) {
                     auto tokens = tokenize(std::string(argv[j]),std::regex("="));
                     replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
@@ -205,7 +220,6 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
     }
     
     CommandLine<T>::load(t,argc,argv,name);
-
     if constexpr (has_init_v<T>) t.init();
 }
 
