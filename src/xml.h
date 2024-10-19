@@ -298,9 +298,36 @@ struct XML<T, std::enable_if_t<std::is_base_of_v<XMLAble,T> && (!is_reflectable_
     }      
 };
 
+/**
+ * Contains a default value
+ */
+struct Default : public ReflectableImpl<layer::basic,Default> {
+    std::string name, value;
+    static const char* type_name() { return "default"; }
+    auto reflect() { return std::tie(name,value); }
+    auto reflect_names() const { return std::tuple("name","value"); }    
+}; 
+
+inline void replace_string(std::string& subject, const std::string& search,
+                        const std::string& replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+            subject.replace(pos, search.length(), replace);
+            pos += replace.length();
+    }
+}
+
 template<typename T>
 void load_xml(T& t, const std::string& xml) { 
+    std::string copy_defaults(xml);
     std::string copy(xml);
+    std::list<Default> defaults;
+    rapidxml::xml_document<> doc_defaults;
+    doc_defaults.parse<0>(&copy_defaults[0]);
+    XML<std::list<Default>>::load(defaults,&doc_defaults);
+    for (const auto& d : defaults) {
+        replace_string(copy,std::string("$")+d.name,d.value);
+    }
     rapidxml::xml_document<> doc;
     doc.parse<0>(&copy[0]);
     XML<T>::load(t,&doc);    
