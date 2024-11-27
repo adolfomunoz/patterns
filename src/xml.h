@@ -305,7 +305,8 @@ struct Default : public ReflectableImpl<layer::basic,Default> {
     std::string name, value;
     static const char* type_name() { return "default"; }
     auto reflect() { return std::tie(name,value); }
-    auto reflect_names() const { return std::tuple("name","value"); }    
+    auto reflect_names() const { return std::tuple("name","value"); } 
+    virtual ~Default() {}   
 }; 
 
 inline void replace_string(std::string& subject, const std::string& search,
