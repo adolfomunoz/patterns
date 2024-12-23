@@ -107,7 +107,6 @@ struct CommandLine<std::optional<T>> {
     }
 };
 
-
 template<typename T>
 struct CommandLine<T, std::enable_if_t<is_reflectable_v<T>>> {
     static void load(T& t, int argc, char** argv, const std::string& att_name = "") {
@@ -161,6 +160,46 @@ struct CommandLine<T, std::enable_if_t<is_collection_v<T>>> {
                     if (elem.impl()) t.push_back(elem); 
                 } else { 
                     t.push_back(elem);
+                }
+            }
+        }
+    }    
+};
+
+template<typename T, std::size_t N>
+struct CommandLine<std::array<T,N>> { 
+    static void load(std::array<T,N>& t, int argc, char** argv, const std::string& name = "") {
+        std::string searchfor = name;
+        if (searchfor.empty()) searchfor=type_traits<T>::name();
+        if constexpr (has_ostream_operator_v<T>) {
+            for (int i = 1; i<argc; ++i) {
+                if (std::string(argv[i])==(std::string("--")+searchfor)) {
+                    for (int j = i+1; j<argc;++j) {
+                        std::string arg(argv[j]); std::size_t i = 0;
+                        if ( (i>=N) ||  ((arg.size() >= 2) && (arg.substr(0,2) == "--")) ) j=argc;
+                        else {
+                            std::stringstream sstr(arg);
+                            sstr>>t[i++];
+                        }
+                    }
+                    i=argc;
+                }
+            }
+        }
+        else { 
+            //We add only if something is going to be found, and only add one element
+            bool do_add = false;
+            for (int i = 1; i<argc; ++i) {
+                if (std::string(argv[i]).rfind(std::string("--")+searchfor,0) == 0)
+                    do_add = true;
+            }
+            if (do_add) {
+                T elem; //Just loads the first element of the collection for now
+                CommandLine<typename T::value_type>::load(elem,argc,argv,name);
+                if constexpr (is_pimpl_v<typename T::value_type>) {
+                    if (elem.impl()) t[0] = elem; 
+                } else { 
+                    t[0] = elem; 
                 }
             }
         }

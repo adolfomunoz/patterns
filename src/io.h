@@ -5,6 +5,8 @@
 #include <fstream>
 #include <optional>
 #include <algorithm>
+#include <array>
+
 
 namespace pattern {
 
@@ -129,6 +131,39 @@ struct IO<C,std::enable_if_t<is_collection_v<C>>> {
                 to = std::find_if(from, end, [](char c){ return std::isspace(c); });
                 typename C::value_type item;
                 if (IO<typename C::value_type>::from_string(item,std::string(from,to))) c.push_back(item);
+            }
+        }
+        return true;
+    }
+};
+
+
+template<typename T, std::size_t N>
+struct IO<std::array<T,N>,void> {
+    static constexpr bool available = IO<T>::available;
+    static std::string to_string(const std::array<T,N>& c) {
+        if constexpr (available) {
+            std::stringstream sstr; bool first = true;
+            for (const auto& item : c) {
+                if (first) { first = false; }
+                else sstr<<" ";
+                sstr<<IO<T>::to_string(item);
+            }
+            return sstr.str();
+        } else return "";
+   }
+   static bool from_string(std::array<T,N>& c, std::string_view s) {
+        if constexpr (has_istream_operator_v<T>) { //For the particular case of istreaming, so we do not depend on separation by spaces
+            std::stringstream sstr((std::string(s)));
+            std::size_t i = 0;
+            while ((i<N) && (sstr>>c[i++]));
+        } else {
+            const auto end = s.end(); auto to = s.begin(); decltype(to) from;
+            std::size_t i = 0;
+            while ((i<N) && ((from = std::find_if(to, end, [](char c){ return !std::isspace(c); })) != end)) {
+                to = std::find_if(from, end, [](char c){ return std::isspace(c); });
+                T item;
+                if (IO<T>::from_string(item,std::string(from,to))) c[i++] = item;
             }
         }
         return true;
