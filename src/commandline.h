@@ -108,7 +108,7 @@ struct CommandLine<std::optional<T>> {
 };
 
 template<typename T>
-struct CommandLine<T, std::enable_if_t<is_reflectable_v<T>>> {
+struct CommandLine<T, std::enable_if_t<is_reflectable_v<T> && (!has_load_commandline_v<T>)>> {
     static void load(T& t, int argc, char** argv, const std::string& att_name = "") {
         t.for_each_attribute([&att_name,argc,argv] (const std::string& name, auto& value) {
             if (att_name.empty()) { //Load directly or by putting the type name in the command line
