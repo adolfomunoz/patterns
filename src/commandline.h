@@ -155,10 +155,7 @@ struct CommandLine<T, std::enable_if_t<is_reflectable_v<T> && (!has_load_command
         t.for_each_attribute([&att_name,&prefix,&sol] (const std::string& name, auto& value) {
             if (att_name.empty()) { //Load directly or by putting the type name in the command line
                 sol = sol + CommandLine<std::decay_t<decltype(value)>>::help(name,prefix);
-                if constexpr (!is_reflectable_v<std::decay_t<decltype(value)>>) {
-                    sol = sol + "\n";
-                } 
-                sol = sol + CommandLine<std::decay_t<decltype(value)>>::help(std::string(type_traits<T>::name())+"-"+name,prefix);
+                sol = sol + "   or   " + CommandLine<std::decay_t<decltype(value)>>::help(std::string(type_traits<T>::name())+"-"+name,"");
             } else {
                 sol = sol + CommandLine<std::decay_t<decltype(value)>>::help(att_name+"-"+name,prefix);                
             } 
@@ -294,7 +291,7 @@ struct CommandLine<std::array<T,N>> {
 template<typename T>
 struct CommandLine<T, std::enable_if_t<has_load_commandline_v<T>>> {
     static std::string help(const std::string& name = "", const std::string& prefix = "") {
-        return T::help(name,prefix);
+        return T::template help<T>(name,prefix);
     } 
     static void load(T& t, int argc, char** argv, const std::string& name = "") {
         t.load_commandline(argc,argv,name);

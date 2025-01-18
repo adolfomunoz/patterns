@@ -112,7 +112,7 @@ public:
     const char* object_type_name() const override {
         return type_traits<Self>::name();
     }
-    
+
     virtual std::string help_from_this(const std::string& name, const std::string& prefix) const override {
         return CommandLine<Self>::help(name,prefix);
     }
@@ -252,22 +252,41 @@ public:
         return SelfRegisteringFactory<Base>::make_shared(name);
     }
       
-    static std::string registered() {
+    static std::list<std::string> registered() {
         return SelfRegisteringFactory<Base>::registered();
     }
 
+    template<typename Self>
     static std::string help(const std::string& name, const std::string& prefix) {
-        //TODO do all the stuff which is quite a bunch of it
-        return "";
+        std::string sol;
+        if (name.empty()) {
+            sol = prefix + "--type=  or  --"+type_traits<Base>::name()+"-type=(";
+        } else {
+            sol = prefix + "--"+name+"-type=(";
+        } 
+        std::list<std::string> types = registered();
+        bool first = true;
+        for (auto t : types) {
+            if (first) first=false;
+            else sol = sol+"|";
+            sol = sol + t;
+        }
+        sol = sol+")\n";
+        for (auto t : types) {
+            sol = sol + prefix + "   " + t + "\n";
+            Self helper(t);
+            sol = sol + helper.help_from_this(name,prefix + "    | ");
+        }   
+        return sol;
     } 
         
     void load_commandline(int argc, char** argv, const std::string& name = "") {
         std::string type;
         if (name.empty()) { //Load directly or by putting the type name in the command line
-            pattern::load_commandline(type,argc,argv,"type");
-            pattern::load_commandline(type,argc,argv,std::string(type_traits<Base>::name())+"-type");
+            CommandLine<std::string>::load(type,argc,argv,"type");
+            CommandLine<std::string>::load(type,argc,argv,std::string(type_traits<Base>::name())+"-type");
         } else {
-            pattern::load_commandline(type,argc,argv,name+"-type");                
+            CommandLine<std::string>::load(type,argc,argv,name+"-type");                
         }
         if ((this->impl()) && (type.empty() || (this->object_type_name() == type))) 
             load_commandline_content(argc,argv,name);

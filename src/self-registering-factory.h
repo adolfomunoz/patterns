@@ -56,9 +56,9 @@ public:
         } else return nullptr;
     }
     
-    static std::string registered() {
-        std::string s;
-        for (const auto& [key, value] : registered_constructors()) s+=(key+" "); 
+    static std::list<std::string> registered() {
+        std::list<std::string> s;
+        for (const auto& [key, value] : registered_constructors()) s.push_back(key); 
         return s;
     }
 };
