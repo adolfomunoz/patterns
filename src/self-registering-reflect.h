@@ -18,7 +18,11 @@ public:
 //but they should be protected.
     virtual void load_content(rapidxml::xml_node<>* found) = 0;
     virtual const char* object_type_name() const = 0;
-    virtual void load_commandline_content(int argc, char**argv, const std::string& name) = 0;
+    //This method is overriden by reflectable classes but we need it here on te base class
+    virtual std::string help_from_this(const std::string& name, const std::string& prefix) const {
+        return "";
+    } 
+    virtual void load_commandline_content(int argc, char** argv, const std::string& name) = 0;
     virtual void init() { } //This init method helps other reflectable classes implement their own init methods for second-stage initialization
     
     //This is overriden by reflectable classes but we need it here on the base class
@@ -109,6 +113,10 @@ public:
         return type_traits<Self>::name();
     }
     
+    virtual std::string help_from_this(const std::string& name, const std::string& prefix) const override {
+        return CommandLine<Self>::help(name,prefix);
+    }
+
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) override {
         CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }     
@@ -223,6 +231,9 @@ protected:
     const char* object_type_name() const override {
         return this->impl()->object_type_name();
     }
+    std::string help_from_this(const std::string& name, const std::string& prefix) const {
+        return this->impl()->help_from_this(name,prefix);
+    } 
     void load_commandline_content(int argc, char**argv, const std::string& name) override {
         this->impl()->load_commandline_content(argc,argv,name);
     }
@@ -244,6 +255,11 @@ public:
     static std::string registered() {
         return SelfRegisteringFactory<Base>::registered();
     }
+
+    static std::string help(const std::string& name, const std::string& prefix) {
+        //TODO do all the stuff which is quite a bunch of it
+        return "";
+    } 
         
     void load_commandline(int argc, char** argv, const std::string& name = "") {
         std::string type;

@@ -1,4 +1,5 @@
 #pragma once
+#include "type-traits.h"
 #include "xml.h"
 #include <sstream>
 #include <vector>
@@ -62,6 +63,12 @@ namespace {
 
 template<typename T, typename Enable = void>
 struct CommandLine {
+    static_assert(has_ostream_operator_v<T>,"Type does not have ostream operator");
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        return prefix + "--" + (name.empty()?type_traits<T>::name():name)
+            + "=<" + type_traits<T>::name() + ">";      
+    } 
+
     static void load(T& t, int argc, char** argv, const std::string& name = "") {
         std::string searchfor = name;
         if (searchfor.empty()) searchfor=type_traits<T>::name();
@@ -75,8 +82,35 @@ struct CommandLine {
     }
 };
 
+/** 
+ * 
+ * For some reason this gets completely messed up with collections...
+template<typename T>
+struct CommandLine<T, std::enable_if_t<IO<T>::available && (!is_collection_v<T>),int>> {
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        return prefix + "--" + (name.empty()?type_traits<T>::name():name)
+            + "=<" + type_traits<T>::name() + ">";      
+    } 
+    
+    static void load(T& t, int argc, char** argv, const std::string& att_name = "") {
+        std::string searchfor = att_name;
+        if (searchfor.empty()) searchfor=type_traits<T>::name();
+        for (int i = 1; i<argc; ++i) {
+            auto tokens = tokenize(std::string(argv[i]),std::regex("="));
+            if (tokens[0] == (std::string("--")+searchfor)) {
+                IO<T>::from_string(t,tokens[1]);
+            }
+        }        
+    }
+};
+**/
+
 template<>
 struct CommandLine<bool> {
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        return prefix + "--" + (name.empty()?"bool":name) + " (becomes true) or "
+            + "--" + (name.empty()?"bool":name)+"=true/false";      
+    } 
     static void load(bool& t, int argc, char** argv, const std::string& name = "") {
         std::string searchfor = name;
         if (searchfor.empty()) searchfor="bool";
@@ -92,6 +126,11 @@ struct CommandLine<bool> {
 
 template<typename T>
 struct CommandLine<std::optional<T>> {
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        return prefix + "--" + (name.empty()?type_traits<T>::name():name)
+            + "=<" + type_traits<T>::name() + ">";      
+    } 
+    
     static void load(std::optional<T>& t, int argc, char** argv, const std::string& name = "") {
         std::string searchfor = name;
         if (searchfor.empty()) searchfor=type_traits<T>::name();
@@ -107,8 +146,30 @@ struct CommandLine<std::optional<T>> {
     }
 };
 
+
 template<typename T>
 struct CommandLine<T, std::enable_if_t<is_reflectable_v<T> && (!has_load_commandline_v<T>)>> {
+    static std::string help(const std::string& att_name = "", const std::string& prefix = "") {
+        std::string sol;
+        T t; // This needs to be default constructible, which is problematic but needs to happen anyway in most cases
+        t.for_each_attribute([&att_name,&prefix,&sol] (const std::string& name, auto& value) {
+            if (att_name.empty()) { //Load directly or by putting the type name in the command line
+                sol = sol + CommandLine<std::decay_t<decltype(value)>>::help(name,prefix);
+                if constexpr (!is_reflectable_v<std::decay_t<decltype(value)>>) {
+                    sol = sol + "\n";
+                } 
+                sol = sol + CommandLine<std::decay_t<decltype(value)>>::help(std::string(type_traits<T>::name())+"-"+name,prefix);
+            } else {
+                sol = sol + CommandLine<std::decay_t<decltype(value)>>::help(att_name+"-"+name,prefix);                
+            } 
+            if constexpr (!is_reflectable_v<std::decay_t<decltype(value)>>) {
+                sol = sol + "\n";
+            }       
+        }); 
+        return sol;         
+    } 
+    
+    
     static void load(T& t, int argc, char** argv, const std::string& att_name = "") {
         t.for_each_attribute([&att_name,argc,argv] (const std::string& name, auto& value) {
             if (att_name.empty()) { //Load directly or by putting the type name in the command line
@@ -116,8 +177,7 @@ struct CommandLine<T, std::enable_if_t<is_reflectable_v<T> && (!has_load_command
                 CommandLine<std::decay_t<decltype(value)>>::load(value,argc,argv,std::string(type_traits<T>::name())+"-"+name);
             } else {
                 CommandLine<std::decay_t<decltype(value)>>::load(value,argc,argv,att_name+"-"+name);                
-            }
-                
+            }       
         });          
     }
 };
@@ -126,6 +186,18 @@ struct CommandLine<T, std::enable_if_t<is_reflectable_v<T> && (!has_load_command
 
 template<typename T>
 struct CommandLine<T, std::enable_if_t<is_collection_v<T>>> { 
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        std::string searchfor = name;
+        if (searchfor.empty()) searchfor=type_traits<T>::name();
+        if constexpr (has_ostream_operator_v<typename T::value_type>) {
+            return prefix + "--" + searchfor + "<"+type_traits<typename T::value_type>::name()+"> <"
+                +type_traits<typename T::value_type>::name()+"> <"
+                +type_traits<typename T::value_type>::name()+">  ...";
+        } else {
+            return CommandLine<typename T::value_type>::help(name,prefix);
+        } 
+    } 
+    
     static void load(T& t, int argc, char** argv, const std::string& name = "") {
         std::string searchfor = name;
         if (searchfor.empty()) searchfor=type_traits<T>::name();
@@ -168,6 +240,19 @@ struct CommandLine<T, std::enable_if_t<is_collection_v<T>>> {
 
 template<typename T, std::size_t N>
 struct CommandLine<std::array<T,N>> { 
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        std::string searchfor = name;
+        if (searchfor.empty()) searchfor=type_traits<T>::name();
+        if constexpr (has_ostream_operator_v<T>) {
+            std::string sol = prefix + "--" + searchfor;
+            for (std::size_t i = 0; i<N;++i)
+                sol = sol + " <"+type_traits<T>::name()+">";
+            return sol;
+        } else {
+            return CommandLine<T>::load(name,prefix);
+        } 
+    }
+    
     static void load(std::array<T,N>& t, int argc, char** argv, const std::string& name = "") {
         std::string searchfor = name;
         if (searchfor.empty()) searchfor=type_traits<T>::name();
@@ -208,37 +293,51 @@ struct CommandLine<std::array<T,N>> {
 
 template<typename T>
 struct CommandLine<T, std::enable_if_t<has_load_commandline_v<T>>> {
+    static std::string help(const std::string& name = "", const std::string& prefix = "") {
+        return T::help(name,prefix);
+    } 
     static void load(T& t, int argc, char** argv, const std::string& name = "") {
         t.load_commandline(argc,argv,name);
     }    
 };
 
-
-
+inline void exit_if_commandline_help(int argc, char** argv) { 
+    for (int i = 1; i<argc; ++i) if (std::string("--help") == argv[i]) exit(0); 
+} 
 
 template<typename T>
 void load_commandline(T& t, int argc, char** argv, const std::string& name = "") { 
-    std::string xmlstring;
+    for (int i = 1; i<argc; ++i) {
+        if (std::string("--help") == argv[i])   { 
+            std::cout<<CommandLine<T>::help(name, "")<<std::endl;
+            //If they ask for help, then print this help and go on (maybe there are more loads)
+        } 
+    } 
+        
+    std::ostringstream xml;
     for (int i = 1; i<argc; ++i) {
         std::string arg(argv[i]);
         if ((arg.size()>4) && (arg.substr(arg.length()-4,4) == ".xml")) {
             std::ifstream in(arg);
             if (in.is_open()) {
-                std::ostringstream sstr;
-                sstr << in.rdbuf();
-                xmlstring = sstr.str();
-                for (int j = 1; j<argc; ++j) {
-                    auto tokens = tokenize(std::string(argv[j]),std::regex("="));
-                    replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
-                }
-                load_xml(t,xmlstring);
+                xml<<in.rdbuf();
             }
         }
     }
+    std::string xmlstring = xml.str();
+    if (!xmlstring.empty()) {
+        for (int j = 1; j<argc; ++j) {
+            auto tokens = tokenize(std::string(argv[j]),std::regex("="));
+            replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
+        }
+        load_xml(t,xmlstring);
+    } 
     
     CommandLine<T>::load(t,argc,argv,name);
     if constexpr (has_init_v<T>) t.init();
 }
+
+
 
 template<typename T>
 T make_from_commandline(int argc, char** argv, const std::string& name = "") {
