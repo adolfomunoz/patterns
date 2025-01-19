@@ -256,12 +256,13 @@ struct CommandLine<std::array<T,N>> {
         if constexpr (has_ostream_operator_v<T>) {
             for (int i = 1; i<argc; ++i) {
                 if (std::string(argv[i])==(std::string("--")+searchfor)) {
+                    std::size_t pos = 0;
                     for (int j = i+1; j<argc;++j) {
-                        std::string arg(argv[j]); std::size_t i = 0;
-                        if ( (i>=N) ||  ((arg.size() >= 2) && (arg.substr(0,2) == "--")) ) j=argc;
+                        std::string arg(argv[j]); 
+                        if ( (pos>=N) ||  ((arg.size() >= 2) && (arg.substr(0,2) == "--")) ) j=argc;
                         else {
                             std::stringstream sstr(arg);
-                            sstr>>t[i++];
+                            sstr>>t[pos++];
                         }
                     }
                     i=argc;
