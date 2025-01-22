@@ -26,3 +26,10 @@ add_executable(visitor-pimpl examples/visitor-pimpl/main.cc)
 add_executable(visitor-generic-pimpl examples/visitor-generic-pimpl/main.cc)
 add_executable(commandline examples/commandline/main.cc)
 
+
+# TESTING DYNAMIC LIBARIES
+# build lib.cpp into a shared library
+add_library(dynamic_lib SHARED examples/dylib/lib.cc)
+# build main.cpp into an executable
+add_executable(dylib_example examples/dylib/main.cc)
+
