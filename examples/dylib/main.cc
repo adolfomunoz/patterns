@@ -1,5 +1,5 @@
 #include <iostream>
-#include "dylib.hpp"
+#include "../../ext/dylib/include/dylib.hpp"
 
 int main() {
     dylib lib("./", "dynamic_lib");

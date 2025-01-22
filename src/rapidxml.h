@@ -1,6 +1,6 @@
 #pragma once
 
-#include <rapidxml/rapidxml.hpp>
+#include "../ext/rapidxml/rapidxml.hpp"
 /* Adding declarations to make it compatible with gcc 4.7 and greater */
 namespace rapidxml {
 namespace internal {
@@ -32,4 +32,4 @@ template <class OutIt, class Ch>
 inline OutIt print_pi_node(OutIt out, const xml_node<Ch>* node, int flags, int indent);
 }
 }
-#include <rapidxml/rapidxml_print.hpp>
+#include "../ext/rapidxml/rapidxml_print.hpp"

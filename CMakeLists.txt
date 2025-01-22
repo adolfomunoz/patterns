@@ -5,6 +5,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(Paths)
 include(Compiler)
+include(Patterns)
 
 
 ###########################################################################################
@@ -20,6 +21,7 @@ add_executable(self-registering-factory examples/self-registering-factory/main.c
 add_executable(xml-reflect-inheritance examples/xml-reflect-inheritance/main.cc)
 add_executable(pimpl-reflect-inheritance examples/pimpl-reflect-inheritance/main.cc)
 add_executable(pimpl-reflect-inheritance-multilevel examples/pimpl-reflect-inheritance-multilevel/main.cc)
+target_compile_definitions(pimpl-reflect-inheritance-multilevel PUBLIC PATTERN_SHOW_SELF_REGISTERING)
 add_executable(pimpl-reflect-inheritance-init examples/pimpl-reflect-inheritance-init/main.cc)
 add_executable(visitor-reflectable examples/visitor-reflectable/main.cc)
 add_executable(visitor-pimpl examples/visitor-pimpl/main.cc)
@@ -27,9 +29,6 @@ add_executable(visitor-generic-pimpl examples/visitor-generic-pimpl/main.cc)
 add_executable(commandline examples/commandline/main.cc)
 
 
-# TESTING DYNAMIC LIBARIES
-# build lib.cpp into a shared library
-add_library(dynamic_lib SHARED examples/dylib/lib.cc)
-# build main.cpp into an executable
+add_plugin(dynamic_lib examples/dylib/lib.cc)
 add_executable(dylib_example examples/dylib/main.cc)
 

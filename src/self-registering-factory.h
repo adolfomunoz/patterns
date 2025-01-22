@@ -4,6 +4,24 @@
 #include <string>
 #include <memory>
 #include "type-traits.h"
+#define NOGDI //Weird windows stuff that we need to do for avoiding a conflicting header
+#include "../ext/dylib/include/dylib.hpp"
+#undef NOGDI
+
+#if defined(_WIN32) || defined(_WIN64)
+#define LIB_EXPORT __declspec(dllexport)
+#else
+#define LIB_EXPORT
+#endif
+
+//For this to work, it should happen that name = pattern::type_traits<Base>::name()
+#define PATTERN_EXPORT_REGISTERED(Base,name)\
+extern "C" {\
+    LIB_EXPORT void* constructor_#name(const std::string& id) {\
+        return reinterpret_cast<void*> SelfRegisteringFactory<Base>::constructor(id);\
+    }\
+}\
+
 
 namespace pattern {
    
@@ -15,13 +33,7 @@ class SelfRegisteringFactory {
 public:
     class Constructor {
     public:
-        virtual Base* make() const = 0;
-        std::unique_ptr<Base> make_unique() const {
-            return std::unique_ptr<Base>(make());
-        }            
-        std::shared_ptr<Base> make_shared() const {
-            return std::shared_ptr<Base>(make());
-        }            
+        virtual Base* make() const = 0;    
     };
     
 private:
@@ -32,28 +44,42 @@ private:
     
 public:
     static bool register_constructor(const std::string& id, Constructor* constructor) {
-        if (auto it = registered_constructors().find(id); it == registered_constructors().end()) {
+        if (id == type_traits<Base>::name()) return false;
+        else if (auto it = registered_constructors().find(id); it == registered_constructors().end()) {
             registered_constructors()[id] = constructor;
             return true;
-        } else return false;
+        } else {
+            return false;
+        }
+    }
+
+    static Constructor* constructor(const std::string& id) {
+        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) 
+            return it->second;
+        else
+            return nullptr;
     }
 
     static Base* make(const std::string& id) {
-        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) {
-            return it->second->make();
-        } else return nullptr;
+        if (auto c = constructor(id)) {
+            #ifdef PATTERN_SHOW_SELF_REGISTERING
+            std::cerr<<"[ INFO ] Loading "<<id<<" of type "<<type_traits<Base>::name()<<" from current source"<<std::endl;
+            #endif
+            return c->make();
+        } else {
+            #ifdef PATTERN_SHOW_SELF_REGISTERING
+            std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found"<<std::endl;
+            #endif 
+            return nullptr;
+        }
     }
     
     static std::unique_ptr<Base> make_unique(const std::string& id) {
-        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) {
-            return it->second->make_unique();
-        } else return nullptr;
+        return std::unique_ptr<Base>(make(id));
     }
     
     static std::shared_ptr<Base> make_shared(const std::string& id) {
-        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) {
-            return it->second->make_shared();
-        } else return nullptr;
+        return std::shared_ptr<Base>(make(id));
     }
     
     static std::list<std::string> registered() {

@@ -1,0 +1,6 @@
+function(add_plugin target)
+    add_library(${target} SHARED ${ARGN})
+    if(WIN32 AND MINGW)
+        set_target_properties(${target} PROPERTIES PREFIX "")
+    endif()
+endfunction()
