@@ -17,13 +17,27 @@
 //For this to work, it should happen that name = pattern::type_traits<Base>::name()
 #define PATTERN_EXPORT_REGISTERED(Base,name)\
 extern "C" {\
-    LIB_EXPORT void* constructor_#name(const std::string& id) {\
-        return reinterpret_cast<void*> SelfRegisteringFactory<Base>::constructor(id);\
+    LIB_EXPORT void* constructor_##name(const std::string& id) {\
+        return reinterpret_cast<void*>(pattern::SelfRegisteringFactory<Base>::constructor(id));\
     }\
-}\
+};\
 
 
 namespace pattern {
+
+class DynamicLibraryManager {
+private:
+    static std::unordered_map<std::string,std::unique_ptr<dylib>> loaded;
+public:
+    static const dylib& load(const std::string& lib) {
+        if (auto it = loaded.find(lib); it == loaded.end()) {
+            loaded[lib] = std::make_unique<dylib>("./",lib);    
+        }
+        return *(loaded[lib]);
+    }
+};
+
+inline std::unordered_map<std::string,std::unique_ptr<dylib>> DynamicLibraryManager::loaded;
    
 
 // - This works with all types of pointers but I will mostly use shared_ptr
@@ -60,12 +74,29 @@ public:
             return nullptr;
     }
 
-    static Base* make(const std::string& id) {
+    static Base* make(const std::string& id, const std::string& library = "") {
         if (auto c = constructor(id)) {
             #ifdef PATTERN_SHOW_SELF_REGISTERING
-            std::cerr<<"[ INFO ] Loading "<<id<<" of type "<<type_traits<Base>::name()<<" from current source"<<std::endl;
+            std::cerr<<"[ INFO ] Loading "<<id<<" of type "<<type_traits<Base>::name()<<" from registered"<<std::endl;
             #endif
             return c->make();
+        } else if (!library.empty()) {
+            try {
+                std::string library_constructor_name = std::string("constructor_")+type_traits<Base>::name();
+                auto library_constructor = DynamicLibraryManager::load(library).get_function<void*(const std::string&)>(library_constructor_name);
+                Constructor* constructor = reinterpret_cast<Constructor*>(library_constructor(id));
+                register_constructor(id,constructor);
+                #ifdef PATTERN_SHOW_SELF_REGISTERING
+                std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<std::endl;
+                #endif
+                return constructor->make();
+            } catch (const dylib::exception& e) {
+                #ifdef PATTERN_SHOW_SELF_REGISTERING
+                std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;
+                std::cerr<<"           -> "<<e.what()<<std::endl;
+                #endif 
+                return nullptr;                
+            }
         } else {
             #ifdef PATTERN_SHOW_SELF_REGISTERING
             std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found"<<std::endl;
@@ -74,12 +105,12 @@ public:
         }
     }
     
-    static std::unique_ptr<Base> make_unique(const std::string& id) {
-        return std::unique_ptr<Base>(make(id));
+    static std::unique_ptr<Base> make_unique(const std::string& id, const std::string& library = "") {
+        return std::unique_ptr<Base>(make(id,library));
     }
     
-    static std::shared_ptr<Base> make_shared(const std::string& id) {
-        return std::shared_ptr<Base>(make(id));
+    static std::shared_ptr<Base> make_shared(const std::string& id, const std::string& library = "") {
+        return std::shared_ptr<Base>(make(id,library));
     }
     
     static std::list<std::string> registered() {

@@ -29,6 +29,6 @@ add_executable(visitor-generic-pimpl examples/visitor-generic-pimpl/main.cc)
 add_executable(commandline examples/commandline/main.cc)
 
 
-add_plugin(dynamic_lib examples/dylib/lib.cc)
-add_executable(dylib_example examples/dylib/main.cc)
+add_plugin(self-registering-plugin-circle examples/self-registering-plugin/circle.cc)
+add_executable(self-registering-plugin examples/self-registering-plugin/main.cc)
 
