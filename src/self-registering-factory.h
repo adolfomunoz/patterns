@@ -29,11 +29,21 @@ class DynamicLibraryManager {
 private:
     static std::unordered_map<std::string,std::unique_ptr<dylib>> loaded;
 public:
-    static const dylib& load(const std::string& lib) {
-        if (auto it = loaded.find(lib); it == loaded.end()) {
-            loaded[lib] = std::make_unique<dylib>("./",lib);    
+    static const dylib* load(const std::string& path, const std::string& lib) {
+        std::unique_ptr<dylib> lib_ptr;
+        if (auto it = loaded.find(path+lib); it == loaded.end()) {
+            try {
+                lib_ptr = std::make_unique<dylib>(path,lib);
+                loaded[path+lib] = std::move(lib_ptr);
+            } catch (const dylib::exception& e) {
+                #ifdef PATTERN_SHOW_SELF_REGISTERING
+                std::cerr<<"[ WARN ] Could not load library "<<lib<<" on path "<<path<<std::endl;
+                #endif
+                return nullptr;
+                lib_ptr = nullptr;
+            } 
         }
-        return *(loaded[lib]);
+        return loaded[path+lib].get();
     }
 };
 
@@ -44,7 +54,10 @@ inline std::unordered_map<std::string,std::unique_ptr<dylib>> DynamicLibraryMana
 // - Subclasses must have empty constructors. How to change that? We will see...
 template<typename Base>
 class SelfRegisteringFactory {
+    static std::list<std::string> library_paths;
 public:
+    static void add_library_path(const std::string& lp) { library_paths.push_back(lp); }
+    static bool empty_library_paths() { return library_paths.empty(); }
     class Constructor {
     public:
         virtual Base* make() const = 0;    
@@ -68,48 +81,69 @@ public:
     }
 
     static Constructor* constructor(const std::string& id) {
-        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) 
+        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) {
+            #ifdef PATTERN_SHOW_SELF_REGISTERING
+            std::cerr<<"[ INFO ] Finding constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
+            #endif        
             return it->second;
-        else
+        } else {
+            #ifdef PATTERN_SHOW_SELF_REGISTERING
+            std::cerr<<"[ WARN ] Not found constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
+            #endif        
             return nullptr;
+        }
     }
 
-    static Base* make(const std::string& id, const std::string& library = "") {
+    static Base* make(const std::string& id, const std::list<std::string>& libraries = std::list<std::string>{}) {
+        if (library_paths.empty()) add_library_path("./");
         if (auto c = constructor(id)) {
             #ifdef PATTERN_SHOW_SELF_REGISTERING
             std::cerr<<"[ INFO ] Loading "<<id<<" of type "<<type_traits<Base>::name()<<" from registered"<<std::endl;
             #endif
             return c->make();
-        } else if (!library.empty()) {
-            try {
-                std::string library_constructor_name = std::string("constructor_")+type_traits<Base>::name();
-                auto library_constructor = DynamicLibraryManager::load(library).get_function<void*(const std::string&)>(library_constructor_name);
-                Constructor* constructor = reinterpret_cast<Constructor*>(library_constructor(id));
-                register_constructor(id,constructor);
-                #ifdef PATTERN_SHOW_SELF_REGISTERING
-                std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<std::endl;
-                #endif
-                return constructor->make();
-            } catch (const dylib::exception& e) {
-                #ifdef PATTERN_SHOW_SELF_REGISTERING
-                std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;
-                std::cerr<<"           -> "<<e.what()<<std::endl;
-                #endif 
-                return nullptr;                
+        } else for (const auto& library : libraries) {
+            for (const auto& path : library_paths) {
+                auto lib = DynamicLibraryManager::load(path, library);
+                if (lib) try {
+                    std::string library_constructor_name = std::string("constructor_")+type_traits<Base>::name();
+                    auto library_constructor = lib->get_function<void*(const std::string&)>(library_constructor_name);
+                    Constructor* constructor = reinterpret_cast<Constructor*>(library_constructor(id));
+                    register_constructor(id,constructor);
+                    #ifdef PATTERN_SHOW_SELF_REGISTERING
+                    std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<" on path "<<path<<std::endl;
+                    #endif
+                    return constructor->make();
+                } catch (const dylib::exception& e) {
+                    #ifdef PATTERN_SHOW_SELF_REGISTERING
+                    std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;
+                    std::cerr<<"           -> "<<e.what()<<std::endl;
+                    #endif                
+                }
             }
-        } else {
-            #ifdef PATTERN_SHOW_SELF_REGISTERING
-            std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found"<<std::endl;
-            #endif 
-            return nullptr;
         }
+        #ifdef PATTERN_SHOW_SELF_REGISTERING
+        std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found anywhere"<<std::endl;
+        #endif 
+        return nullptr;
+    }
+
+    static Base* make(const std::string& id, const std::string& library) {
+        return make(id,std::list<std::string>{library});
     }
     
-    static std::unique_ptr<Base> make_unique(const std::string& id, const std::string& library = "") {
+    static std::unique_ptr<Base> make_unique(const std::string& id, const std::list<std::string>& libraries = std::list<std::string>{}) {
+        return std::unique_ptr<Base>(make(id,libraries));
+    }
+    
+    static std::shared_ptr<Base> make_shared(const std::string& id, const std::list<std::string>& libraries = std::list<std::string>{}) {
+        return std::shared_ptr<Base>(make(id,libraries));
+    }
+    
+    static std::unique_ptr<Base> make_unique(const std::string& id, const std::string& library) {
         return std::unique_ptr<Base>(make(id,library));
     }
     
-    static std::shared_ptr<Base> make_shared(const std::string& id, const std::string& library = "") {
+    static std::shared_ptr<Base> make_shared(const std::string& id, const std::string& library) {
         return std::shared_ptr<Base>(make(id,library));
     }
     
@@ -119,6 +153,9 @@ public:
         return s;
     }
 };
+
+template<typename Base>
+std::list<std::string> SelfRegisteringFactory<Base>::library_paths;
 
 // vv Should never happen, it is specialized 
 template<typename Self, typename... Bases>

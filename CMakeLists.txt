@@ -32,3 +32,5 @@ add_executable(commandline examples/commandline/main.cc)
 add_plugin(self-registering-plugin-circle examples/self-registering-plugin/circle.cc)
 add_executable(self-registering-plugin examples/self-registering-plugin/main.cc)
 
+add_plugin_on_folder(circle shape examples/pimpl-reflect-plugin/circle.cc)
+add_executable(pimpl-reflect-plugin examples/pimpl-reflect-plugin/main.cc)

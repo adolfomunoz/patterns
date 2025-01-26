@@ -166,9 +166,18 @@ public:
 
 template<typename Base>
 class Pimpl<Base,layer::self_registering,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,layer::self_registering-1> {
+
+    static std::shared_ptr<Base> make_shared(const std::string& type) {
+        if (SelfRegisteringFactory<Base>::empty_library_paths()) {
+           SelfRegisteringFactory<Base>::add_library_path("./");
+           SelfRegisteringFactory<Base>::add_library_path(std::string("./")+type_traits<Base>::name()+"/"); 
+        }
+        return SelfRegisteringFactory<Base>::make_shared(type,std::list<std::string>{type,
+            std::string(type_traits<Base>::name())+"-"+type});
+    }
 public:
     using Pimpl<Base,layer::self_registering-1>::Pimpl;
-    Pimpl(const std::string& type) : Pimpl<Base,layer::self_registering-1>(SelfRegisteringFactory<Base>::make_shared(type)) {}
+    Pimpl(const std::string& type) : Pimpl<Base,layer::self_registering-1>(make_shared(type)) {}
     Pimpl(const char* type) : Pimpl(std::string(type)) {}
     using Pimpl<Base,layer::self_registering-1>::operator=;
 
@@ -243,13 +252,13 @@ public:
     }
     std::string type() const { return std::string(object_type_name()); }
     void set_type(const std::string& name) {
-        auto ptr = SelfRegisteringFactory<Base>::make_shared(name);
+        auto ptr = make_shared(name);
         if (ptr) { (*this) = ptr; }
     }
     
     static bool can_hold_type(const std::string& name) {
         //Warning, this does not seem to work very well
-        return SelfRegisteringFactory<Base>::make_shared(name);
+        return make_shared(name);
     }
       
     static std::list<std::string> registered() {
