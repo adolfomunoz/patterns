@@ -248,7 +248,8 @@ protected:
     }
 public:
     void init() override {
-        this->impl()->init();
+        if (!this->is_null())
+            this->impl()->init();
     }
     std::string type() const { return std::string(object_type_name()); }
     void set_type(const std::string& name) {
@@ -297,7 +298,7 @@ public:
         } else {
             CommandLine<std::string>::load(type,argc,argv,name+"-type");                
         }
-        if ((this->impl()) && (type.empty() || (this->object_type_name() == type))) 
+        if ((!this->is_null()) && (type.empty() || (this->object_type_name() == type))) 
             load_commandline_content(argc,argv,name);
         else {
             auto ptr = SelfRegisteringFactory<Base>::make_shared(type);
