@@ -96,6 +96,12 @@ public:
 
     static Base* make(const std::string& id, const std::list<std::string>& libraries = std::list<std::string>{}) {
         if (library_paths.empty()) add_library_path("./");
+        if (id.empty()) {
+            #ifdef PATTERN_SHOW_SELF_REGISTERING
+            std::cerr<<"[ WARN ] Emtpy id for constructing type "<<type_traits<Base>::name()<<std::endl;
+            #endif 
+            return nullptr;           
+        }
         if (auto c = constructor(id)) {
             #ifdef PATTERN_SHOW_SELF_REGISTERING
             std::cerr<<"[ INFO ] Loading "<<id<<" of type "<<type_traits<Base>::name()<<" from registered"<<std::endl;

@@ -259,7 +259,7 @@ public:
     
     static bool can_hold_type(const std::string& name) {
         //Warning, this does not seem to work very well
-        return make_shared(name);
+        return bool(make_shared(name));
     }
       
     static std::list<std::string> registered() {
