@@ -72,6 +72,7 @@ private:
 public:
     static bool register_constructor(const std::string& id, Constructor* constructor) {
         if (id == type_traits<Base>::name()) return false;
+        else if (id.empty()) return false;
         else if (auto it = registered_constructors().find(id); it == registered_constructors().end()) {
             registered_constructors()[id] = constructor;
             return true;
@@ -173,13 +174,16 @@ template<typename Self, typename Base>
 class SelfRegisteringClass<Self,Base> {
     class Constructor : public SelfRegisteringFactory<Base>::Constructor {
     public:
-        Base* make() const override { return new Self; }
+        Base* make() const override { 
+            if constexpr (std::is_abstract_v<Self>) return nullptr;
+            else return new Self; 
+        }
     };
 public:
     inline static Constructor constructor;
     inline static bool is_registered = 
-        SelfRegisteringFactory<Base>::register_constructor(type_traits<Self>::name(),&constructor);
-
+        SelfRegisteringFactory<Base>::register_constructor((std::is_abstract_v<Self>?std::string():type_traits<Self>::name()),&constructor);
+    //We avoid registering abstract classes, which is something that we didn't do before
     #ifdef __GNUC__
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-value"
@@ -195,12 +199,15 @@ template<typename Self, typename Base, typename... Bases>
 class SelfRegisteringClass<Self,Base,Bases...> : public SelfRegisteringClass<Self,Bases...> {
     class Constructor : public SelfRegisteringFactory<Base>::Constructor {
     public:
-        Base* make() const override { return new Self; }
+        Base* make() const override { 
+            if constexpr (std::is_abstract_v<Self>) return nullptr;
+            else return new Self; 
+        }
     };
 public:
     inline static Constructor constructor;
     inline static bool is_registered = 
-        SelfRegisteringFactory<Base>::register_constructor(type_traits<Self>::name(),&constructor);
+        SelfRegisteringFactory<Base>::register_constructor((std::is_abstract_v<Self>?std::string():type_traits<Self>::name()),&constructor);
 
     #ifdef __GNUC__   
     #pragma GCC diagnostic push

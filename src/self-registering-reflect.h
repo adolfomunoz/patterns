@@ -90,35 +90,43 @@ class ReflectableChecked<layer::self_registering,true,Self,Bases...> : public Ch
 public: 
     using ReflectableImpl<layer::self_registering,Self,Bases...>::ReflectableImpl;
     virtual void load(rapidxml::xml_node<>* node, const std::string& att_name = "") override {
-        XML<Self>::load(static_cast<Self&>(*this),node,att_name);
+        if constexpr (!std::is_abstract_v<Self>) XML<Self>::load(static_cast<Self&>(*this),node,att_name);
     }
     virtual void load_content(rapidxml::xml_node<>* found) override {
-        if constexpr (is_reflectable_v<Self>)
+        if constexpr ((is_reflectable_v<Self>) && (!std::is_abstract_v<Self>))
             XML<Self>::load_content(static_cast<Self&>(*this),found);
     }
     virtual bool generates(xml_flag_type flags = 0) const override {
-        return XML<Self>::generates(static_cast<const Self&>(*this),flags);
+        if constexpr (!std::is_abstract_v<Self>) 
+            return XML<Self>::generates(static_cast<const Self&>(*this),flags);
+        else
+            return false;
     }
     virtual std::string get_tag(const std::string&  name = "", xml_flag_type flags = 0) const override {
-        return XML<Self>::get_tag(static_cast<const Self&>(*this),name,flags);
+        if constexpr (!std::is_abstract_v<Self>) return XML<Self>::get_tag(static_cast<const Self&>(*this),name,flags);
+        else return "";
     } 
     virtual std::string get_attributes(const std::string&  name = "", xml_flag_type flags = 0) const override {
-        return XML<Self>::get_attributes(static_cast<const Self&>(*this),name,flags);
+        if constexpr (!std::is_abstract_v<Self>) return XML<Self>::get_attributes(static_cast<const Self&>(*this),name,flags);
+        else return "";
     }
     virtual std::string get_content(const std::string&  name = "", const std::string& prefix = "", xml_flag_type flags = 0) const override {
-        return XML<Self>::get_content(static_cast<const Self&>(*this),name,prefix,flags);
+        if constexpr (!std::is_abstract_v<Self>) return XML<Self>::get_content(static_cast<const Self&>(*this),name,prefix,flags);
+        else return "";
     }
 
     const char* object_type_name() const override {
-        return type_traits<Self>::name();
+        if constexpr (!std::is_abstract_v<Self>) return type_traits<Self>::name();
+        else return "";
     }
 
     virtual std::string help_from_this(const std::string& name, const std::string& prefix) const override {
-        return CommandLine<Self>::help(name,prefix);
+        if constexpr (!std::is_abstract_v<Self>) return CommandLine<Self>::help(name,prefix);
+        else return "";
     }
 
     virtual void load_commandline_content(int argc, char**argv, const std::string& name) override {
-        CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
+        if constexpr (!std::is_abstract_v<Self>) CommandLine<Self>::load(static_cast<Self&>(*this),argc,argv,name);
     }     
 };
 
