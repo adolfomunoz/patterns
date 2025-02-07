@@ -269,7 +269,7 @@ template<typename T>
 inline constexpr bool has_init_v = has_init<T>::value; 
 
 
-
+/** 
 template<typename T>
 auto operator<<(std::ostream& os, const T& v) -> std::enable_if_t<is_reflectable_v<T>, std::ostream&> {
     v.for_each_attribute([&os] (const std::string& name, const auto& value) {
@@ -288,6 +288,7 @@ auto operator>>(std::istream& is, T& v) -> std::enable_if_t<is_reflectable_v<T>,
     if constexpr (has_init_v<T>) v.init();
     return is;
 }
+**/
 
     
 
