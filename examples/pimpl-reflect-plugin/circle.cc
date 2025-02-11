@@ -12,5 +12,5 @@ public:
     auto reflect() { return std::tie(radius);  }
 };
 
-PATTERN_EXPORT_REGISTERED(ShapeBase,shape);
+PATTERN_EXPORT_REGISTERED
 

@@ -15,12 +15,18 @@
 #endif
 
 //For this to work, it should happen that name = pattern::type_traits<Base>::name()
-#define PATTERN_EXPORT_REGISTERED(Base,name)\
+#define PATTERN_EXPORT_REGISTERED \
 extern "C" {\
-    LIB_EXPORT void* constructor_##name(const std::string& id) {\
-        return reinterpret_cast<void*>(pattern::SelfRegisteringFactory<Base>::constructor(id));\
+    LIB_EXPORT void* constructor(const std::string& type, const std::string& id) {\
+        return pattern::Constructors::constructor(type,id);\
     }\
-};\
+    LIB_EXPORT std::string types() {\
+        return pattern::Constructors::types();\
+    }\
+    LIB_EXPORT std::string constructors_of(const std::string& type) {\
+        return pattern::Constructors::constructors_of(type);\
+    }\
+}\
 
 
 namespace pattern {
@@ -48,7 +54,47 @@ public:
 };
 
 inline std::unordered_map<std::string,std::unique_ptr<dylib>> DynamicLibraryManager::loaded;
-   
+
+/**
+ * This class stores all registered constructors using a dual index.
+ * This is only used for:
+ *    Dynamic libraries
+ *    Debuggers
+ */
+class Constructors {
+    static std::unordered_map<std::string,std::unordered_map<std::string,void*>> constructors;
+public:
+    template<typename Base>
+    static void register_constructor(const std::string& id, void* constructor) {
+        constructors[type_traits<Base>::name()][id] = constructor;
+    }
+
+    static void* constructor(const std::string& type, const std::string& id) {
+        if (auto it = constructors.find(type); it != constructors.end()) {
+            if (auto il = it->second.find(id); il != it->second.end()) {
+                return il->second;
+            }
+        }
+        return nullptr;
+    }
+
+    static std::string types() {
+        std::string s;
+        for (const auto& [key, value] : constructors) s+=(key+" "); 
+        return s;        
+    }
+
+    static std::string constructors_of(const std::string& type) {
+        std::string s;
+        if (auto it = constructors.find(type); it != constructors.end()) {
+            for (const auto& [key, value] : it->second) s+=(key+" "); 
+        }
+        return s;        
+    }
+}; 
+
+inline std::unordered_map<std::string,std::unordered_map<std::string,void*>> Constructors::constructors;
+
 
 // - This works with all types of pointers but I will mostly use shared_ptr
 // - Subclasses must have empty constructors. How to change that? We will see...
@@ -75,6 +121,7 @@ public:
         else if (id.empty()) return false;
         else if (auto it = registered_constructors().find(id); it == registered_constructors().end()) {
             registered_constructors()[id] = constructor;
+            Constructors::register_constructor<Base>(id,constructor);
             return true;
         } else {
             return false;
@@ -112,14 +159,18 @@ public:
             for (const auto& path : library_paths) {
                 auto lib = DynamicLibraryManager::load(path, library);
                 if (lib) try {
-                    std::string library_constructor_name = std::string("constructor_")+type_traits<Base>::name();
-                    auto library_constructor = lib->get_function<void*(const std::string&)>(library_constructor_name);
-                    Constructor* constructor = reinterpret_cast<Constructor*>(library_constructor(id));
-                    register_constructor(id,constructor);
+                    auto library_constructor = lib->get_function<void*(const std::string&,const std::string&)>("constructor");
+                    Constructor* constructor = reinterpret_cast<Constructor*>(library_constructor(type_traits<Base>::name(),id));
+                    if (constructor) {
+                        register_constructor(id,constructor);
+                        #ifdef PATTERN_SHOW_SELF_REGISTERING
+                        std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<" on path "<<path<<std::endl;
+                        #endif
+                        return constructor->make();
+                    } 
                     #ifdef PATTERN_SHOW_SELF_REGISTERING
-                    std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<" on path "<<path<<std::endl;
+                    else std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;
                     #endif
-                    return constructor->make();
                 } catch (const dylib::exception& e) {
                     #ifdef PATTERN_SHOW_SELF_REGISTERING
                     std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;

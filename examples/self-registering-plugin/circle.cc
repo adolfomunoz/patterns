@@ -13,5 +13,5 @@ public:
     static const char* type_name() { return "circle"; }
 };
 
-PATTERN_EXPORT_REGISTERED(Shape,shape);
+PATTERN_EXPORT_REGISTERED;
 
