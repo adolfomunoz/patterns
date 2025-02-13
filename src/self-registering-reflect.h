@@ -248,7 +248,7 @@ protected:
     const char* object_type_name() const override {
         return this->impl()->object_type_name();
     }
-    std::string help_from_this(const std::string& name, const std::string& prefix) const {
+    std::string help_from_this(const std::string& name, const std::string& prefix) const override {
         return this->impl()->help_from_this(name,prefix);
     } 
     void load_commandline_content(int argc, char**argv, const std::string& name) override {
