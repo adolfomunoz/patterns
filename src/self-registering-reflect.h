@@ -215,7 +215,7 @@ public:
                     load_content(found);
                     return;
                 } else {
-                    auto ptr = SelfRegisteringFactory<Base>::make_shared(loading_type);
+                    auto ptr = make_shared(loading_type);
                     if (ptr) {
                         (*this) = ptr;
                         load_content(found);

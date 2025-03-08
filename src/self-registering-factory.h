@@ -20,10 +20,13 @@ extern "C" {\
     LIB_EXPORT void* constructor(const std::string& type, const std::string& id) {\
         return pattern::Constructors::constructor(type,id);\
     }\
+    LIB_EXPORT void merge(std::unordered_map<std::string,std::unordered_map<std::string,void*>>* that) {\
+        pattern::Constructors::merge(that);\
+    }\
     LIB_EXPORT std::string types() {\
         return pattern::Constructors::types();\
     }\
-    LIB_EXPORT std::string constructors_of(const std::string& type) {\
+    LIB_EXPORT std::list<std::string> constructors_of(const std::string& type) {\
         return pattern::Constructors::constructors_of(type);\
     }\
 }\
@@ -62,15 +65,27 @@ inline std::unordered_map<std::string,std::unique_ptr<dylib>> DynamicLibraryMana
  *    Debuggers
  */
 class Constructors {
-    static std::unordered_map<std::string,std::unordered_map<std::string,void*>> constructors;
 public:
+    static std::unordered_map<std::string,std::unordered_map<std::string,void*>>* constructors;
+    
     template<typename Base>
     static void register_constructor(const std::string& id, void* constructor) {
-        constructors[type_traits<Base>::name()][id] = constructor;
+        (*constructors)[type_traits<Base>::name()][id] = constructor;
+    }
+
+    static void merge(std::unordered_map<std::string,std::unordered_map<std::string,void*>>* that) {
+        for (auto& [key, value] : (*constructors)) {
+            if (auto it = that->find(key); it != that->end()) {
+                it->second.insert(value.begin(),value.end());
+            }
+        }
+        that->insert(constructors->begin(),constructors->end());
+        delete constructors;
+        constructors = that;
     }
 
     static void* constructor(const std::string& type, const std::string& id) {
-        if (auto it = constructors.find(type); it != constructors.end()) {
+        if (auto it = constructors->find(type); it != constructors->end()) {
             if (auto il = it->second.find(id); il != it->second.end()) {
                 return il->second;
             }
@@ -80,20 +95,21 @@ public:
 
     static std::string types() {
         std::string s;
-        for (const auto& [key, value] : constructors) s+=(key+" "); 
+        for (const auto& [key, value] : (*constructors)) s+=(key+" "); 
         return s;        
     }
 
-    static std::string constructors_of(const std::string& type) {
-        std::string s;
-        if (auto it = constructors.find(type); it != constructors.end()) {
-            for (const auto& [key, value] : it->second) s+=(key+" "); 
+    static std::list<std::string> constructors_of(const std::string& type) {
+        std::list<std::string> s;
+        if (auto it = constructors->find(type); it != constructors->end()) {
+            for (const auto& [key, value] : it->second) s.push_back(key); 
         }
         return s;        
     }
 }; 
 
-inline std::unordered_map<std::string,std::unordered_map<std::string,void*>> Constructors::constructors;
+inline std::unordered_map<std::string,std::unordered_map<std::string,void*>>* Constructors::constructors 
+    = new std::unordered_map<std::string,std::unordered_map<std::string,void*>>();
 
 
 // - This works with all types of pointers but I will mostly use shared_ptr
@@ -110,30 +126,31 @@ public:
     };
     
 private:
+/*  This is not needed anymore
     static std::unordered_map<std::string,Constructor*>& registered_constructors() {
         static std::unordered_map<std::string,Constructor*> r{};
         return r;
     }
+*/
     
 public:
     static bool register_constructor(const std::string& id, Constructor* constructor) {
         if (id == type_traits<Base>::name()) return false;
         else if (id.empty()) return false;
-        else if (auto it = registered_constructors().find(id); it == registered_constructors().end()) {
-            registered_constructors()[id] = constructor;
+        void* c = Constructors::constructor(type_traits<Base>::name(),id);
+        if (!c) {
             Constructors::register_constructor<Base>(id,constructor);
             return true;
-        } else {
-            return false;
-        }
+        } else return false;
     }
 
     static Constructor* constructor(const std::string& id) {
-        if (auto it = registered_constructors().find(id); it != registered_constructors().end()) {
+        void* c = Constructors::constructor(type_traits<Base>::name(),id);
+        if (c) {
             #ifdef PATTERN_SHOW_SELF_REGISTERING
-            std::cerr<<"[ INFO ] Finding constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
+            std::cerr<<"[ INFO ] Found constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
             #endif        
-            return it->second;
+            return reinterpret_cast<Constructor*>(c);
         } else {
             #ifdef PATTERN_SHOW_SELF_REGISTERING
             std::cerr<<"[ WARN ] Not found constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
@@ -162,10 +179,19 @@ public:
                     auto library_constructor = lib->get_function<void*(const std::string&,const std::string&)>("constructor");
                     Constructor* constructor = reinterpret_cast<Constructor*>(library_constructor(type_traits<Base>::name(),id));
                     if (constructor) {
-                        register_constructor(id,constructor);
-                        #ifdef PATTERN_SHOW_SELF_REGISTERING
-                        std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<" on path "<<path<<std::endl;
-                        #endif
+                        auto library_merge = lib->get_function<void(std::unordered_map<std::string,std::unordered_map<std::string,void*>>*)>("merge");
+                        if (library_merge) {
+                            library_merge(pattern::Constructors::constructors);
+                            #ifdef PATTERN_SHOW_SELF_REGISTERING
+                            std::cerr<<"[ INFO ] Registering everything from library "<<library<<" on path "<<path<<std::endl;
+                            #endif    
+                        } else {
+                            register_constructor(id,constructor);
+                            #ifdef PATTERN_SHOW_SELF_REGISTERING
+                            std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<" on path "<<path<<std::endl;
+                            #endif
+                        }
+
                         return constructor->make();
                     } 
                     #ifdef PATTERN_SHOW_SELF_REGISTERING
@@ -181,6 +207,11 @@ public:
         }
         #ifdef PATTERN_SHOW_SELF_REGISTERING
         std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found anywhere"<<std::endl;
+        std::cerr<<"         Tried libraries [ ";
+        for (const auto& library : libraries) std::cerr<<library<<" ";
+        std::cerr<<"] on library pathds [ ";
+        for (const auto& path : library_paths) std::cerr<<path<<" ";
+        std::cerr<<"]"<<std::endl;
         #endif 
         return nullptr;
     }
@@ -206,9 +237,7 @@ public:
     }
     
     static std::list<std::string> registered() {
-        std::list<std::string> s;
-        for (const auto& [key, value] : registered_constructors()) s.push_back(key); 
-        return s;
+        return Constructors::constructors_of(type_traits<Base>::name());
     }
 };
 
