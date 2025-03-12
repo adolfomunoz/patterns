@@ -220,7 +220,11 @@ public:
                         (*this) = ptr;
                         load_content(found);
                         return;
-                    } 
+                    } else {
+                        #ifdef PATTERN_LOG_XML
+                        std::cerr<<"[ WARN ] In XML, could not load type "<<loading_type<<" belonging to class "<<type_traits<Base>::name()<<std::endl;
+                        #endif
+                    }
                 }
             }
         }

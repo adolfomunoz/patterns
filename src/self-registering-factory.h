@@ -45,11 +45,8 @@ public:
                 lib_ptr = std::make_unique<dylib>(path,lib);
                 loaded[path+lib] = std::move(lib_ptr);
             } catch (const dylib::exception& e) {
-                #ifdef PATTERN_SHOW_SELF_REGISTERING
-                std::cerr<<"[ WARN ] Could not load library "<<lib<<" on path "<<path<<std::endl;
-                #endif
-                return nullptr;
                 lib_ptr = nullptr;
+                return nullptr;
             } 
         }
         return loaded[path+lib].get();
@@ -146,17 +143,8 @@ public:
 
     static Constructor* constructor(const std::string& id) {
         void* c = Constructors::constructor(type_traits<Base>::name(),id);
-        if (c) {
-            #ifdef PATTERN_SHOW_SELF_REGISTERING
-            std::cerr<<"[ INFO ] Found constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
-            #endif        
-            return reinterpret_cast<Constructor*>(c);
-        } else {
-            #ifdef PATTERN_SHOW_SELF_REGISTERING
-            std::cerr<<"[ WARN ] Not found constructor of "<<id<<" of type "<<type_traits<Base>::name()<<std::endl;
-            #endif        
-            return nullptr;
-        }
+        if (c) return reinterpret_cast<Constructor*>(c);
+        else return nullptr;
     }
 
     static Base* make(const std::string& id, const std::list<std::string>& libraries = std::list<std::string>{}) {
@@ -191,15 +179,11 @@ public:
                             std::cerr<<"[ INFO ] Loading and registering "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<" on path "<<path<<std::endl;
                             #endif
                         }
-
                         return constructor->make();
                     } 
-                    #ifdef PATTERN_SHOW_SELF_REGISTERING
-                    else std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;
-                    #endif
                 } catch (const dylib::exception& e) {
                     #ifdef PATTERN_SHOW_SELF_REGISTERING
-                    std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found on library "<<library<<std::endl;
+                    std::cerr<<"[ WARN ] Couldn't load "<<id<<" of type "<<type_traits<Base>::name()<<" from library "<<library<<std::endl;
                     std::cerr<<"           -> "<<e.what()<<std::endl;
                     #endif                
                 }
@@ -209,7 +193,7 @@ public:
         std::cerr<<"[ WARN ] "<<id<<" of type "<<type_traits<Base>::name()<<" not found anywhere"<<std::endl;
         std::cerr<<"         Tried libraries [ ";
         for (const auto& library : libraries) std::cerr<<library<<" ";
-        std::cerr<<"] on library pathds [ ";
+        std::cerr<<"] on library paths [ ";
         for (const auto& path : library_paths) std::cerr<<path<<" ";
         std::cerr<<"]"<<std::endl;
         #endif 
