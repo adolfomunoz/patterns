@@ -286,7 +286,8 @@ template<typename T>
 struct XML<T, std::enable_if_t<std::is_base_of_v<XMLAble,T> && (!is_reflectable_v<T>) && (!IO<T>::available)>> {
     static constexpr bool available = true;
     static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
-        t.load(node,att_name);           
+        t.load(node,att_name);
+        t.init();           
     }
 
     static bool generates(const T& t, xml_flag_type flags = 0) {
