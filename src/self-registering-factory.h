@@ -23,7 +23,7 @@ extern "C" {\
     LIB_EXPORT void merge(std::unordered_map<std::string,std::unordered_map<std::string,void*>>* that) {\
         pattern::Constructors::merge(that);\
     }\
-    LIB_EXPORT std::string types() {\
+    LIB_EXPORT std::list<std::string> types() {\
         return pattern::Constructors::types();\
     }\
     LIB_EXPORT std::list<std::string> constructors_of(const std::string& type) {\
@@ -71,14 +71,18 @@ public:
     }
 
     static void merge(std::unordered_map<std::string,std::unordered_map<std::string,void*>>* that) {
-        for (auto& [key, value] : (*constructors)) {
-            if (auto it = that->find(key); it != that->end()) {
-                it->second.insert(value.begin(),value.end());
+        if (constructors != that) { //Some compilers make the global variable and the dlls/so local variable
+                // to point to the same direction so we avoid merging in this case
+                 
+            for (auto& [key, value] : (*constructors)) {    
+                if (auto it = that->find(key); it != that->end()) {
+                    it->second.insert(value.begin(),value.end());
+                }
             }
-        }
-        that->insert(constructors->begin(),constructors->end());
-        delete constructors;
-        constructors = that;
+            that->insert(constructors->begin(),constructors->end());
+            delete constructors;
+            constructors = that;
+        } 
     }
 
     static void* constructor(const std::string& type, const std::string& id) {
@@ -90,9 +94,9 @@ public:
         return nullptr;
     }
 
-    static std::string types() {
-        std::string s;
-        for (const auto& [key, value] : (*constructors)) s+=(key+" "); 
+    static std::list<std::string> types() {
+        std::list<std::string> s;
+        for (const auto& [key, value] : (*constructors)) s.push_back(key); 
         return s;        
     }
 
@@ -102,6 +106,18 @@ public:
             for (const auto& [key, value] : it->second) s.push_back(key); 
         }
         return s;        
+    }
+
+    static std::string to_string() {
+        std::string s;
+        for (const std::string& type : types()) {
+            s+=("  "+type+"  : ");
+            for (const std::string& c : constructors_of(type)) {
+                s+=(c+"  ");
+            }
+            s+="\n";
+        }
+        return s;
     }
 }; 
 
