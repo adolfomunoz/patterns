@@ -215,12 +215,16 @@ public:
                     load_content(found);
                     return;
                 } else {
-                    auto ptr = SelfRegisteringFactory<Base>::make_shared(loading_type);
+                    auto ptr = make_shared(loading_type);
                     if (ptr) {
                         (*this) = ptr;
                         load_content(found);
                         return;
-                    } 
+                    } else {
+                        #ifdef PATTERN_LOG_XML
+                        std::cerr<<"[ WARN ] In XML, could not load type "<<loading_type<<" belonging to class "<<type_traits<Base>::name()<<std::endl;
+                        #endif
+                    }
                 }
             }
         }
@@ -248,7 +252,7 @@ protected:
     const char* object_type_name() const override {
         return this->impl()->object_type_name();
     }
-    std::string help_from_this(const std::string& name, const std::string& prefix) const {
+    std::string help_from_this(const std::string& name, const std::string& prefix) const override {
         return this->impl()->help_from_this(name,prefix);
     } 
     void load_commandline_content(int argc, char**argv, const std::string& name) override {

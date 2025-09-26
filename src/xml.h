@@ -89,6 +89,13 @@ struct XML<T,std::enable_if_t<IO<T>::available && !is_collection_v<T> && !is_ref
             }  
             IO<T>::from_string(t,whole.str());
         }
+        #ifdef PATTERN_LOG_XML
+        else {
+            std::cerr<<"[ WARN ] XML cannot load element of type "<<type_traits<T>::name();
+            if (!att_name.empty()) std::cerr<<" with name "<<att_name;
+            std::cerr<<std::endl;
+        }
+        #endif
     }
 
     static bool generates(const T& t, xml_flag_type flags = 0) {
@@ -279,7 +286,8 @@ template<typename T>
 struct XML<T, std::enable_if_t<std::is_base_of_v<XMLAble,T> && (!is_reflectable_v<T>) && (!IO<T>::available)>> {
     static constexpr bool available = true;
     static void load(T& t, rapidxml::xml_node<>* node, const std::string& att_name = "") {
-        t.load(node,att_name);           
+        t.load(node,att_name);
+        t.init();           
     }
 
     static bool generates(const T& t, xml_flag_type flags = 0) {
