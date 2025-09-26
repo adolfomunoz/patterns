@@ -4,3 +4,4 @@
 [submodule "ext/dylib"]
 	path = ext/dylib
 	url = https://github.com/martin-olivier/dylib.git
+	branch = v2.X.X
