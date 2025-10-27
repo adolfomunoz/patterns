@@ -42,7 +42,7 @@ public:
         std::unique_ptr<dylib> lib_ptr;
         if (auto it = loaded.find(path+lib); it == loaded.end()) {
             try {
-                lib_ptr = std::make_unique<dylib>(path+"/"+lib);
+                lib_ptr = std::make_unique<dylib>(path,lib);
                 loaded[path+lib] = std::move(lib_ptr);
             } catch (const dylib::exception& e) {
                 lib_ptr = nullptr;
