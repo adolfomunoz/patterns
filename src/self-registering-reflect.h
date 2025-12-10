@@ -175,13 +175,28 @@ public:
 template<typename Base>
 class Pimpl<Base,layer::self_registering,std::enable_if_t<std::is_base_of_v<SelfRegisteringReflectableBase,Base>>>  : public Pimpl<Base,layer::self_registering-1> {
 
+    static std::list<std::string> get_prefixes_before_hyphens(const std::string& str) {
+        std::list<std::string> result;
+        std::string current;   
+        for (char c : str) {
+            if (c == '-') {
+                result.push_back(current);
+            }
+            current += c;
+        }
+        result.push_back(current); 
+        return result;
+    }
+
     static std::shared_ptr<Base> make_shared(const std::string& type) {
         if (SelfRegisteringFactory<Base>::empty_library_paths()) {
            SelfRegisteringFactory<Base>::add_library_path("./");
            SelfRegisteringFactory<Base>::add_library_path(std::string("./")+type_traits<Base>::name()+"/"); 
         }
-        return SelfRegisteringFactory<Base>::make_shared(type,std::list<std::string>{type,
-            std::string(type_traits<Base>::name())+"-"+type});
+        std::list<std::string> substrings = get_prefixes_before_hyphens(type);
+        std::list<std::string> library_names = substrings;
+        for (const std::string& s : substrings) library_names.push_back(std::string(type_traits<Base>::name())+"-"+s);
+        return SelfRegisteringFactory<Base>::make_shared(type,library_names);
     }
 public:
     using Pimpl<Base,layer::self_registering-1>::Pimpl;

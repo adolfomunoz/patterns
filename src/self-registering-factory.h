@@ -100,6 +100,31 @@ public:
         return s;        
     }
 
+    static void load_all_from_library(const std::string& path, const std::string& library) {
+        auto lib = DynamicLibraryManager::load(path, library);
+        if (lib) {
+            try {
+                auto library_merge = lib->get_function<void(std::unordered_map<std::string,std::unordered_map<std::string,void*>>*)>("merge");
+                if (library_merge) {
+                    library_merge(pattern::Constructors::constructors);
+                    #ifdef PATTERN_SHOW_SELF_REGISTERING
+                    std::cerr<<"[ INFO ] Registering everything from library "<<library<<" on path "<<path<<std::endl;
+                    #endif
+                }
+            } catch (const dylib::exception& e) {
+                #ifdef PATTERN_SHOW_SELF_REGISTERING
+                std::cerr<<"[ WARN ] Couldn't load library "<<library<<" on path "<<path<<std::endl;
+                std::cerr<<"           -> "<<e.what()<<std::endl;
+                #endif                
+            } 
+        } else {
+            #ifdef PATTERN_SHOW_SELF_REGISTERING
+            std::cerr<<"[ WARN ] Library "<<library<<" not found on path "<<path<<std::endl;
+            #endif                
+
+        }    
+    }
+
     static std::list<std::string> constructors_of(const std::string& type) {
         std::list<std::string> s;
         if (auto it = constructors->find(type); it != constructors->end()) {
