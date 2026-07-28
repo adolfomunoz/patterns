@@ -4,9 +4,7 @@
 #include <string>
 #include <memory>
 #include "type-traits.h"
-#define NOGDI //Weird windows stuff that we need to do for avoiding a conflicting header
-#include "../ext/dylib/include/dylib.hpp"
-#undef NOGDI
+#include "dylib.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define LIB_EXPORT __declspec(dllexport)
