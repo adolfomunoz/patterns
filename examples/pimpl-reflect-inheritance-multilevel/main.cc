@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
         shapes.push_back(Rectangle(1.0,2.0));
         shapes.push_back(Square(3.0));
         shapes.push_back(Pentagon(1.0));
+        shapes.push_back(Sector(2.0,1.0));
         std::cout<<pattern::xml(shapes)<<std::endl;
     }
     
@@ -29,5 +30,23 @@ int main(int argc, char** argv) {
         std::cout<<pattern::xml(shape)<<std::endl;
     }
 
+    {
+        Shape shape;
+        pattern::load_xml(shape,
+            "<shape type=\"pentagon\">\
+                <float name=\"side\" value=\"1.0\"/>\
+             </shape>");
+        std::cout<<pattern::xml(shape)<<std::endl;
+    }
+
+    {
+        Shape shape;
+        pattern::load_xml(shape,
+            "<shape type=\"sector\">\
+                <float name=\"radius\" value=\"2.0\"/>\
+                <float name=\"angle\" value=\"1.0\"/>\
+             </shape>");
+        std::cout<<pattern::xml(shape)<<std::endl;
+    }
 }
 
