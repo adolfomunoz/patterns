@@ -2,13 +2,15 @@
 #include <vector>
 #include <list>
 #include <type_traits>
+#include <optional>
 
 namespace pattern {
 
     
 template<typename C, typename V = void>
 struct type_traits_impl {
-    static const char* name() { return typeid(C).name(); }  
+    [[deprecated("Provide a static const char* C::type_name() method to get a more meaningful name.")]]
+    static const char* name() { return typeid(C).name(); }
 };
 
 template<>
@@ -52,8 +54,34 @@ struct type_traits_impl<unsigned long,void> {
 };
 
 template<>
+struct type_traits_impl<unsigned long long,void> {
+    static const char* name() { return "integer"; }
+};
+
+template<>
 struct type_traits_impl<std::string,void> {
     static const char* name() { return "string"; }
+};
+
+template<typename T>
+struct type_traits_impl<std::optional<T>,void> {
+    static const char* name() { return type_traits_impl<T>::name(); }
+};
+
+template<typename T>
+struct type_traits_impl<std::vector<T>,void> {
+    static const char* name() { 
+        static const std::string c = std::string("collection-") + type_traits_impl<T>::name();
+        return c.c_str(); 
+    }
+};
+
+template<typename T>
+struct type_traits_impl<std::list<T>,void> {
+    static const char* name() { 
+        static const std::string c = std::string("collection-") + type_traits_impl<T>::name();
+        return c.c_str(); 
+    }
 };
 
 template<typename C>
