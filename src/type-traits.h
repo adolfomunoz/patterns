@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <list>
+#include <array>
 #include <type_traits>
 #include <optional>
 
@@ -78,6 +79,14 @@ struct type_traits_impl<std::vector<T>,void> {
 
 template<typename T>
 struct type_traits_impl<std::list<T>,void> {
+    static const char* name() { 
+        static const std::string c = std::string("collection-") + type_traits_impl<T>::name();
+        return c.c_str(); 
+    }
+};
+
+template<typename T, std::size_t N>
+struct type_traits_impl<std::array<T, N>,void> {
     static const char* name() { 
         static const std::string c = std::string("collection-") + type_traits_impl<T>::name();
         return c.c_str(); 
