@@ -34,24 +34,30 @@ namespace pattern {
 
 class DynamicLibraryManager {
 private:
-    static std::unordered_map<std::string,std::unique_ptr<dylib>> loaded;
+    using Libraries = std::unordered_map<std::string,std::unique_ptr<dylib>>;
+
+    // Plugins provide constructors and vtables retained elsewhere; do not unload them
+    // during static destruction, when their code may still be referenced.
+    static Libraries& loaded() {
+        static Libraries* libraries = new Libraries;
+        return *libraries;
+    }
 public:
     static const dylib* load(const std::string& path, const std::string& lib) {
         std::unique_ptr<dylib> lib_ptr;
-        if (auto it = loaded.find(path+lib); it == loaded.end()) {
+        Libraries& libraries = loaded();
+        if (auto it = libraries.find(path+lib); it == libraries.end()) {
             try {
                 lib_ptr = std::make_unique<dylib>(path,lib);
-                loaded[path+lib] = std::move(lib_ptr);
+                libraries[path+lib] = std::move(lib_ptr);
             } catch (const dylib::exception& e) {
                 lib_ptr = nullptr;
                 return nullptr;
             } 
         }
-        return loaded[path+lib].get();
+        return libraries[path+lib].get();
     }
 };
-
-inline std::unordered_map<std::string,std::unique_ptr<dylib>> DynamicLibraryManager::loaded;
 
 /**
  * This class stores all registered constructors using a dual index.
