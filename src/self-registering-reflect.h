@@ -295,6 +295,10 @@ public:
 
     template<typename Self>
     static std::string help(const std::string& name, const std::string& prefix) {
+        static thread_local unsigned int help_depth = 0;
+        constexpr unsigned int max_help_depth = 4;
+        if (help_depth > max_help_depth) return "";
+        ++help_depth;
         std::string sol;
         if (name.empty()) {
             sol = prefix + "--type=  or  --"+type_traits<Base>::name()+"-type=(";
