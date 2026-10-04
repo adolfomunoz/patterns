@@ -49,12 +49,32 @@ class CheckedSelfRegistering<Self, Base,
 template<typename Self, typename... Bases>
 class CheckedSelfRegistering<Self, ReflectableInheritance<Bases...>> : public CheckedManySelfRegistering<Self,Bases...> {};
 
-template<typename Self, typename Base>
-class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && !std::is_abstract_v<Base> && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public CheckedSelfRegistering<Self,typename Base::FirstBase>, public CheckedSelfRegistering<Self,typename Base::RestOfBases> {
+template<typename Self, typename FirstBase, typename RestOfBases>
+class CheckedSelfRegisteringBases
+    : public CheckedSelfRegistering<Self, FirstBase>,
+      public CheckedSelfRegistering<Self, RestOfBases> {
+};
+
+template<typename Self>
+class CheckedSelfRegisteringBases<Self, void, void> {
+};
+
+template<typename Self, typename RestOfBases>
+class CheckedSelfRegisteringBases<Self, void, RestOfBases>
+    : public CheckedSelfRegistering<Self, RestOfBases> {
+};
+
+template<typename Self, typename FirstBase>
+class CheckedSelfRegisteringBases<Self, FirstBase, void>
+    : public CheckedSelfRegistering<Self, FirstBase> {
 };
 
 template<typename Self, typename Base>
-class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && std::is_abstract_v<Base>  && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base>, public CheckedSelfRegistering<Self,typename Base::FirstBase>, public CheckedSelfRegistering<Self,typename Base::RestOfBases> {
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && !std::is_abstract_v<Base> && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public CheckedSelfRegisteringBases<Self,typename Base::FirstBase, typename Base::RestOfBases> {
+};
+
+template<typename Self, typename Base>
+class CheckedSelfRegistering<Self, Base, std::enable_if_t<is_reflectable_v<Base> && std::is_abstract_v<Base>  && std::is_base_of_v<SelfRegisteringReflectableBase,Base>>> : public SelfRegisteringClass<Self,Base>, public CheckedSelfRegisteringBases<Self,typename Base::FirstBase, typename Base::RestOfBases> {
 };
 
 
@@ -295,10 +315,12 @@ public:
 
     template<typename Self>
     static std::string help(const std::string& name, const std::string& prefix) {
+        //We use a thread local variable to avoid infinite recursion in case of cyclic dependencies
         static thread_local unsigned int help_depth = 0;
-        constexpr unsigned int max_help_depth = 4;
+        constexpr unsigned int max_help_depth = 2;
         if (help_depth > max_help_depth) return "";
         ++help_depth;
+        //Here we have avoided infinite recursion. 
         std::string sol;
         if (name.empty()) {
             sol = prefix + "--type=  or  --"+type_traits<Base>::name()+"-type=(";
