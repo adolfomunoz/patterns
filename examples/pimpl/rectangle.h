@@ -4,9 +4,11 @@
 #include <cmath>
 
 class Rectangle: public ShapeBase {
-    float width,height;
+    float width_,height_;
 public:
-    Rectangle(float width = 1.0f, float height = 1.0f) : width(width), height(height) {}
-    float area() const override { return width*height; }
+    Rectangle(float width = 1.0f, float height = 1.0f) : width_(width), height_(height) {}
+    float width() const { return width_; }
+    float height() const { return height_; }
+    float area() const override { return width_*height_; }
 };
 
