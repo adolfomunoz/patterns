@@ -96,3 +96,14 @@ public:
   shares the same implementation object.
 - Assigning a concrete value (`shape = Rectangle(...)`) creates a new
   implementation object from it.
+
+## Combining with other patterns
+
+If the base class is also [visitable](visitor.md), the pimpl forwards `accept`
+automatically, so the wrapper can be visited as the object it holds. See
+[Visitor and Pimpl](visitor-pimpl.md).
+
+If the base class is [reflectable](reflect.md) and
+[self-registering](self-registering.md), the wrapper can also be written to and
+loaded from XML as the type it holds, and create that type by name, even from
+a plugin. See [Pimpl with reflection and self-registration](pimpl-reflect.md).

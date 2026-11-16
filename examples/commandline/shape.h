@@ -5,6 +5,7 @@
 class ShapeBase : public pattern::SelfRegisteringReflectableBase {
 public:
     static const char* type_name() { return "shape"; }
+    virtual ~ShapeBase() = default;
     virtual float area() const = 0;
 };
 

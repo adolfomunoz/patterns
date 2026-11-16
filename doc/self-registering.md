@@ -190,3 +190,10 @@ cmake -S . -B build && cmake --build build
 cd bin && ./self-registering-plugin
 ```
 
+## Combining with other patterns
+
+When the base class is also [reflectable](reflect.md) and held by a
+[pimpl](pimpl.md), registration comes with `Reflectable<Self, Base>` and the
+wrapper finds the plugins by itself, from a name or from XML. See
+[Pimpl with reflection and self-registration](pimpl-reflect.md).
+

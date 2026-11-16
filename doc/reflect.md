@@ -84,7 +84,8 @@ pattern::load_xml(l, "<float value=\"-1.0\" /><float value=\"-2.0\" /><float val
 | `pattern::make_from_xml<T>(text)` | builds a `T` (default constructible) from XML text |
 
 Other serializations, such as the one for the command line in
-[commandline.h](../src/commandline.h), build on the same mechanism.
+[commandline.h](../src/commandline.h) (see [Command line](commandline.md)),
+build on the same mechanism.
 
 ### Visiting the attributes
 
@@ -264,3 +265,9 @@ rect.area();                                                   // 3: load_xml ca
   filled with the loaded elements.
 - Everything is resolved at compile time, except `get_attribute` and
   `set_attribute`, which are virtual and compare names at run time.
+
+## Combining with other patterns
+
+A reflectable class that derives from a self-registering base can be held by a
+[pimpl](pimpl.md), which is then serialized and loaded as the type it holds.
+See [Pimpl with reflection and self-registration](pimpl-reflect.md).
