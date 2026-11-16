@@ -4,10 +4,7 @@
 
 int main() {
     Rectangle rect(1.0,2.0);
-//    vv This does not work anymore because it could happen that some
-//          attribute was not "outputable" iself, which was a bug
-//    std::cout<<rect<<std::endl;
-        
+
     std::cout<<pattern::xml(rect)<<std::endl;
     
     Transformed g(3,-2,Rectangle(5,5));
