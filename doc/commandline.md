@@ -2,7 +2,7 @@
 
 Reflectable classes, including [pimpls over reflectable bases](pimpl-reflect.md),
 can be **filled from the command line** with no parsing code. The library uses
-the same attribute list that serves for [XML](reflect.md): each attribute
+the same attribute list that serves for [XML](xml.md): each attribute
 becomes an option named after it. It also prints a help text built from that
 list (`--help`) and can read the values from `.xml` files given as arguments.
 The example is [examples/commandline](../examples/commandline), which uses the
@@ -34,7 +34,7 @@ std::cout << pattern::xml(shape);
 Nothing is written for `Rectangle` or `Shape`. The optional `name` is the
 option name for the value, as `distance` above. Values that are not on the
 command line keep the value of a default-constructed `T`. As with
-[`load_xml`](reflect.md#loading-from-xml), `init()` is called after loading if
+[`load_xml`](xml.md#using-xml), `init()` is called after loading if
 the class has one.
 
 ### Option names
@@ -108,7 +108,7 @@ definitions, so it is never out of date when attributes are added.
 Every argument that ends in `.xml` is read as a file, and its content is
 loaded with `load_xml` **before** the command line options are applied. The
 files are used for the type being loaded, so they use the same format as
-[XML loading](reflect.md#loading-from-xml). From
+[XML loading](xml.md#using-xml). From
 [main.xml](../examples/commandline/main.xml):
 
 ```xml
@@ -139,21 +139,29 @@ files are used for the type being loaded, so they use the same format as
 
 A value in the XML can be written as `$name`. It is replaced by the value of
 `--name=...` from the command line before the XML is loaded, so a file can be
-a template. From [configurable.xml](../examples/commandline/configurable.xml):
+a template. See [XML variables](xml.md#reflectable-pimpls-and-xml-variables)
+for defaults declared with `<default>` and for inserting complete XML nodes.
+From [configurable.xml](../examples/commandline/configurable.xml):
 
 ```xml
+<default name="config">0.5</default>
 <float name="distance" value="$config"/>
 <integer value="$config"/>
 ```
 
 ```sh
+./commandline configurable.xml               # the XML default configures both values as 0.5
 ./commandline configurable.xml --config=5     # distance = 5 and integer = 5
 ```
 
 - Every `--name=value` argument defines a variable, and not only the ones
   that the program knows.
-- Give a value for each variable used. A variable without one is left as
-  text, and loading it as a number fails.
+- Command-line variables override same-named `<default>` values from the XML.
+- Give a value for each variable used if it has no XML default. A variable
+  without either remains as text, and loading it as a number fails.
+- `<$name/>` can insert a complete XML node. The complete-node form is shown
+  in [configurable-node.xml](../examples/commandline/configurable-node.xml)
+  and [examples/xml-variables](../examples/xml-variables).
 - The same options are still applied afterwards, so `--distance=7` also
   overrides what the file produced.
 
@@ -163,6 +171,8 @@ a template. From [configurable.xml](../examples/commandline/configurable.xml):
   `make_from_commandline` creates it and then loads it.
 - **Parsing is simple:** options must be written with `=` (`--width=4`,
   not `--width 4`), except for collections. Unknown options are ignored.
+- **XML format and variables:** see [XML](xml.md) for serialization, loading,
+  `<default>` declarations and whole-node replacement.
 - **A class can customize it:** a class that defines its own
   `load_commandline` method is loaded through it instead of the
   attribute-based mechanism. `Pimpl` does that for self-registering bases.

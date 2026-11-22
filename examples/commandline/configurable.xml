@@ -1,2 +1,3 @@
+<default name="config">0.5</default>
 <float name="distance" value="$config"/>
 <integer value="$config"/>

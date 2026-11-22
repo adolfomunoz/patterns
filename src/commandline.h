@@ -323,12 +323,15 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
         }
     }
     std::string xmlstring = xml.str();
+    std::list<Default> variables;
     if (!xmlstring.empty()) {
         for (int j = 1; j<argc; ++j) {
             auto tokens = tokenize(std::string(argv[j]),std::regex("="));
-            if ((tokens.size()>1) && (tokens[0].size()>2)) replace_string(xmlstring,std::string("$")+tokens[0].substr(2),tokens[1]);
+            if ((tokens.size()>1) && (tokens[0].size()>2)) {
+                variables.push_back(Default(tokens[0].substr(2),tokens[1]));
+            }
         }
-        load_xml(t,xmlstring);
+        load_xml(t,xmlstring,variables);
     } 
     
     CommandLine<T>::load(t,argc,argv,name);

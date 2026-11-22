@@ -2,6 +2,7 @@
 #include "io.h"
 #include "reflect.h"
 #include "rapidxml.h"
+#include <unordered_map>
 
 
 
@@ -309,13 +310,50 @@ struct XML<T, std::enable_if_t<std::is_base_of_v<XMLAble,T> && (!is_reflectable_
 /**
  * Contains a default value
  */
-struct Default : public ReflectableImpl<layer::basic,Default> {
+struct Default : public XMLAble {
+    static std::string get_inner_xml(const rapidxml::xml_node<>* node) {
+    if (!node) return {};
+
+    std::string inner_xml;
+    for (const rapidxml::xml_node<>* child = node->first_node();
+         child != nullptr;
+         child = child->next_sibling()) {
+        rapidxml::print(std::back_inserter(inner_xml), *child, rapidxml::print_no_indenting);
+    }
+    return inner_xml;
+}
+public:
     std::string name, value;
+    Default(const std::string& name = "", const std::string& value = "") : name(name), value(value) {}
+
+    void init() {}
     static const char* type_name() { return "default"; }
-    auto reflect() { return std::tie(name,value); }
-    auto reflect_names() const { return std::tuple("name","value"); } 
-    virtual ~Default() {}   
+    void load(rapidxml::xml_node<>* node, const std::string& att_name = "") override {
+        auto found = find_xml_node(node,"default",att_name);
+        if (found) {
+            rapidxml::xml_attribute<>* name_att = found->first_attribute("name");
+            if (name_att) name = std::string(name_att->value(),name_att->value_size());
+            rapidxml::xml_attribute<>* value_att = found->first_attribute("value");
+            if (value_att) value = std::string(value_att->value(),value_att->value_size());
+            else value = get_inner_xml(found);
+        } 
+    }
+    virtual bool generates(xml_flag_type flags = 0) const override {
+        return !name.empty();
+    }
+    std::string get_tag(const std::string&  name = "", xml_flag_type flags = 0) const override {
+        return "default";
+    }
+    std::string get_attributes(const std::string&  name = "", xml_flag_type flags = 0) const override {
+       if (!(flags & xml_value_as_content)) return " name=\""+this->name+"\" value=\""+value+"\" ";
+       else return " name=\""+this->name+"\" ";
+    }
+    std::string get_content(const std::string&  name = "", const std::string& prefix = "", xml_flag_type flags = 0) const override {
+       if (flags & xml_value_as_content) return prefix+value;
+       else return "";
+    }
 }; 
+
 
 inline void replace_string(std::string& subject, const std::string& search,
                         const std::string& replace) {
@@ -326,39 +364,119 @@ inline void replace_string(std::string& subject, const std::string& search,
     }
 }
 
-template<typename T>
-void load_xml(T& t, const std::string& xml) { 
-    std::string copy_defaults(xml);
-    std::string copy(xml);
-    std::list<Default> defaults;
+inline size_t xml_tag_end(const std::string& xml, size_t begin) {
+    char quote = '\0';
+    for (size_t pos = begin; pos < xml.size(); ++pos) {
+        if (quote) {
+            if (xml[pos] == quote) quote = '\0';
+        } else if (xml[pos] == '\'' || xml[pos] == '"') {
+            quote = xml[pos];
+        } else if (xml[pos] == '>') {
+            return pos;
+        }
+    }
+    return std::string::npos;
+}
+
+inline std::tuple<std::string, std::string> split_xml_nodes(const std::string& xml, std::string_view tag) {
+    std::string xml_without_tag = xml;
+    std::string xml_with_tag = "";
+    
+    const std::string opening = "<" + std::string(tag);
+    const std::string closing = "</" + std::string(tag);
+    auto is_boundary = [](char c) {
+        return c == '>' || c == '/' || std::isspace(static_cast<unsigned char>(c));
+    };
+
+    size_t search_from = 0;
+    while ((search_from = xml_without_tag.find(opening, search_from)) != std::string::npos) {
+        const size_t opening_name_end = search_from + opening.size();
+        if (opening_name_end >= xml.size() || !is_boundary(xml_without_tag[opening_name_end])) {
+            ++search_from;
+            continue;
+        }
+
+        const size_t opening_end = xml_tag_end(xml, opening_name_end);
+        if (opening_end == std::string::npos) break;
+
+        size_t slash = opening_end;
+        while (slash > opening_name_end && std::isspace(static_cast<unsigned char>(xml_without_tag[slash - 1]))) --slash;
+        if (slash > opening_name_end && xml_without_tag[slash - 1] == '/') {
+            xml_with_tag += xml_without_tag.substr(search_from, opening_end - search_from + 1);
+            xml_without_tag.erase(search_from, opening_end - search_from + 1);
+            continue;
+        }
+
+        size_t closing_begin = xml.find(closing, opening_end + 1);
+        while (closing_begin != std::string::npos) {
+            const size_t closing_name_end = closing_begin + closing.size();
+            if (closing_name_end < xml_without_tag.size() && is_boundary(xml_without_tag[closing_name_end])) break;
+            closing_begin = xml_without_tag.find(closing, closing_name_end);
+        }
+        if (closing_begin == std::string::npos) {
+            search_from = opening_end + 1;
+            continue;
+        }
+
+        const size_t closing_end = xml_tag_end(xml_without_tag, closing_begin + closing.size());
+        if (closing_end == std::string::npos) break;
+        xml_with_tag += xml_without_tag.substr(search_from, closing_end - search_from + 1);
+        xml_without_tag.erase(search_from, closing_end - search_from + 1);
+    }
+    return {xml_without_tag, xml_with_tag};
+}
+
+std::string replace_variables_in_xml(const std::string& xml, const std::list<Default>& variables = {}) {
+    auto [copy, copy_defaults] = split_xml_nodes(xml, "default");
     rapidxml::xml_document<> doc_defaults;
+    std::list<Default> defaults;
     doc_defaults.parse<0>(&copy_defaults[0]);
     XML<std::list<Default>>::load(defaults,&doc_defaults);
-    for (const auto& d : defaults) {
-        replace_string(copy,std::string("$")+d.name,d.value);
+    std::unordered_map<std::string,std::string> variable_map;
+    for (const auto& d : defaults)  {
+        variable_map[d.name] = d.value;
     }
+    //The variables replace the default values obtained from the xml file
+    for (const auto& d : variables) {
+        variable_map[d.name] = d.value;
+    }
+
+    for (const auto& [name,value] : variable_map) {
+        //First we replace full nodes with the variable names (we need to preserve
+        // the inner xml of the file even before the replacement)
+        replace_string(copy,std::string("<$")+name+"/>",value);
+        //Once we have replaced full xml nodes, we replace the variables.
+        replace_string(copy,std::string("$")+name,value);
+    }
+
+    return copy;
+}
+
+template<typename T>
+void load_xml(T& t, const std::string& xml, std::list<Default> variables = {}) { 
+    std::string prepared_xml = replace_variables_in_xml(xml,variables);
     rapidxml::xml_document<> doc;
-    doc.parse<0>(&copy[0]);
+    doc.parse<0>(&prepared_xml[0]);
     XML<T>::load(t,&doc);    
     if constexpr (has_init_v<T>) t.init();
 }
 
 template<typename T>
-bool load_xml_file(T& t, const std::string& xmlfile) { 
+bool load_xml_file(T& t, const std::string& xmlfile, std::list<Default> variables = {}) { 
     //Too many copies here, we will solve it later if needed.
     std::ifstream in(xmlfile);
     if (in.is_open()) {
         std::ostringstream sstr;
         sstr << in.rdbuf();
-        load_xml(t,sstr.str());
+        load_xml(t,sstr.str(),variables);
         return true;
     } else return false;
 }
 
 template<typename T>
-T make_from_xml(const std::string& xml) {
+T make_from_xml(const std::string& xml, std::list<Default> variables = {}) {
     T t; //Must be default constructible
-    load_xml(t,xml);
+    load_xml(t,xml,variables);
     return t;
 }
 

@@ -1,0 +1,5 @@
+<default name="shape">
+    <shape type="circle" radius="3.14"/>
+</default>
+
+<$shape/>

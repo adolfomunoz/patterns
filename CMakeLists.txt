@@ -28,6 +28,8 @@ add_executable(visitor-reflectable examples/visitor-reflectable/main.cc)
 add_executable(visitor-pimpl examples/visitor-pimpl/main.cc)
 add_executable(visitor-generic-pimpl examples/visitor-generic-pimpl/main.cc)
 add_executable(commandline examples/commandline/main.cc)
+add_executable(xml-variables examples/xml-variables/main.cc)
+
 
 
 add_plugin(self-registering-plugin-circle examples/self-registering-plugin/circle.cc)
