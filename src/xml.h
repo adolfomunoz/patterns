@@ -426,7 +426,7 @@ inline std::tuple<std::string, std::string> split_xml_nodes(const std::string& x
     return {xml_without_tag, xml_with_tag};
 }
 
-std::string replace_variables_in_xml(const std::string& xml, const std::list<Default>& variables = {}) {
+std::string replace_variables_in_xml(const std::string& xml, const std::list<Default>& variables = {}, std::string path = "") {
     auto [copy, copy_defaults] = split_xml_nodes(xml, "default");
     rapidxml::xml_document<> doc_defaults;
     std::list<Default> defaults;
@@ -442,19 +442,42 @@ std::string replace_variables_in_xml(const std::string& xml, const std::list<Def
     }
 
     for (const auto& [name,value] : variable_map) {
+        std::string replacement = value;
+        if ((value.size() > 4) && (value.substr(value.length()-4,4) == ".xml")) {
+            // If the value is a path to an XML file, we load it
+            std::ifstream in(value);
+            if (!in.is_open()) {
+                // Try to open the file relative to the provided path
+                std::string full_path = path + value;
+                in.open(full_path);
+            }
+            if (in.is_open()) {
+                std::ostringstream xml_sstr;
+                xml_sstr << in.rdbuf();
+                in.close();
+                // Recursively replace variables in the loaded XML
+                std::list<Default> nested_variables = variables; // Pass the same variables for nested replacement
+                nested_variables.remove_if([&name](const Default& d) { return d.name == name; }); // Avoid self-replacement because it creates an infinite recursion
+                std::string xml_value = xml_sstr.str();
+                replace_variables_in_xml(xml_value,nested_variables,path);
+                replacement = xml_value;
+            } else {
+                std::cerr << "Could not open XML file for variable replacement: " << value << std::endl;
+            }
+        }
         //First we replace full nodes with the variable names (we need to preserve
         // the inner xml of the file even before the replacement)
-        replace_string(copy,std::string("<$")+name+"/>",value);
+        replace_string(copy,std::string("<$")+name+"/>",replacement);
         //Once we have replaced full xml nodes, we replace the variables.
-        replace_string(copy,std::string("$")+name,value);
+        replace_string(copy,std::string("$")+name,replacement);
     }
 
     return copy;
 }
 
 template<typename T>
-void load_xml(T& t, const std::string& xml, std::list<Default> variables = {}) { 
-    std::string prepared_xml = replace_variables_in_xml(xml,variables);
+void load_xml(T& t, const std::string& xml, std::list<Default> variables = {}, std::string path = "") { 
+    std::string prepared_xml = replace_variables_in_xml(xml,variables,path);
     rapidxml::xml_document<> doc;
     doc.parse<0>(&prepared_xml[0]);
     XML<T>::load(t,&doc);    
@@ -466,9 +489,10 @@ bool load_xml_file(T& t, const std::string& xmlfile, std::list<Default> variable
     //Too many copies here, we will solve it later if needed.
     std::ifstream in(xmlfile);
     if (in.is_open()) {
+        std::string xmlpath = xmlfile.substr(0,xmlfile.find_last_of("/\\")+1);
         std::ostringstream sstr;
         sstr << in.rdbuf();
-        load_xml(t,sstr.str(),variables);
+        load_xml(t,sstr.str(),variables,xmlpath);
         return true;
     } else return false;
 }

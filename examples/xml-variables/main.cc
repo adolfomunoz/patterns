@@ -19,6 +19,8 @@ std::string replacement_2 = R"(
 <shape type="rectangle" width="4" height="5"/>
 )";
 
+std::string replacement_3 = R"(../examples/xml-variables/other_shape.xml)";
+
 int main(int argc, char** argv) {
     std::list<Shape> shapes;
     pattern::load_xml(shapes,xml_shapes);
@@ -31,6 +33,10 @@ int main(int argc, char** argv) {
 
     pattern::load_xml(shapes,xml_shapes,{{"finalshape",replacement_2}});
     std::cout<<"Shapes loaded from xml with replacement 2:"<<std::endl;
+    std::cout<<pattern::xml(shapes)<<std::endl;
+
+    pattern::load_xml(shapes,xml_shapes,{{"finalshape",replacement_3}});
+    std::cout<<"Shapes loaded from xml with replacement 3:"<<std::endl;
     std::cout<<pattern::xml(shapes)<<std::endl;
 }
 

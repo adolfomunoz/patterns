@@ -165,6 +165,36 @@ From [configurable.xml](../examples/commandline/configurable.xml):
 - The same options are still applied afterwards, so `--distance=7` also
   overrides what the file produced.
 
+#### XML files as variable values
+
+The value of a variable can also be the path to an XML file. If it ends in
+`.xml`, the content of that file replaces the variable, which allows a
+complete part of the configuration to be selected from the command line:
+
+```xml
+<default name="finalshape">
+    <shape type="circle" radius="3"/>
+</default>
+<shape type="circle" radius="1"/>
+<$finalshape/>
+```
+
+```sh
+./commandline shapes.xml                           # the default circle of radius 3
+./commandline shapes.xml --finalshape=other.xml    # the content of other.xml in its place
+```
+
+- **Not an input file:** `--finalshape=other.xml` starts with `--`, so it is
+  a variable and not an XML file argument. It is only read if the XML refers
+  to `$finalshape` or `<$finalshape/>`.
+- **Path lookup:** the path is tried as written, relative to the working
+  directory, and then relative to the directory of the XML file that is being
+  loaded.
+- **Valid XML:** the file content is inserted as text before parsing, so it
+  must fit where the variable is used. See
+  [XML files as variable values](xml.md#xml-files-as-variable-values) for
+  nested files and missing files.
+
 ## Semantics
 
 - **Required constructor:** `T` must be default constructible, as

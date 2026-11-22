@@ -179,6 +179,46 @@ rectangle.
 The preprocessing pass is also available directly as
 `pattern::replace_variables_in_xml(text, variables)`.
 
+### XML files as variable values
+
+If the value of a variable ends in `.xml`, it is read as a file path and the
+content of the file replaces the variable, instead of the path itself. This
+applies to values passed to `load_xml` and to `<default>` declarations:
+
+```cpp
+std::string replacement_3 = "../examples/xml-variables/other_shape.xml";
+pattern::load_xml(shapes, xml_shapes,
+    {{"finalshape", replacement_3}});
+```
+
+With [other_shape.xml](../examples/xml-variables/other_shape.xml) containing
+`<shape type="circle" radius="42"/>`, `<$finalshape/>` is replaced by that
+node, as if it had been written in `xml_shapes`.
+
+```xml
+<default name="finalshape">other_shape.xml</default>
+<shape type="circle" radius="1"/>
+<$finalshape/>
+```
+
+- **Path lookup:** the path is first tried as given (relative to the working
+  directory of the program). If it cannot be opened, it is tried relative to
+  the directory of the XML file being loaded. The second case only applies
+  when loading with `load_xml_file` or from the command line, as `load_xml`
+  with a string has no file directory.
+- **Inserted as raw XML:** the content of the file follows the same rules as
+  any other replacement, so it must be valid XML in its final position. It
+  can be a fragment with several nodes.
+- **Nested files:** the loaded file can use variables itself, including
+  defaults, and those values can also be `.xml` paths.
+- **Missing files:** if the file cannot be opened, a message is written to
+  `std::cerr` and the path text is used as the replacement. Since a path is
+  not valid XML as a node, loading will then fail, so check the path first
+  if the program stops at this point.
+- **Detection:** only the `.xml` extension is checked, with that exact
+  lowercase spelling. A scalar value that happens to end in `.xml` is also
+  treated as a file.
+
 The same variables can be supplied on the command line as `--name=value`; see
 [Command line: Loading XML files](commandline.md#loading-xml-files) and
 [Command line: Variables](commandline.md#variables).
@@ -199,8 +239,8 @@ detected automatically; it is not added to `reflect()`.
 - **Required constructors:** `make_from_xml` requires a default-constructible
   type; collections also need default-constructible elements.
 - **Preprocessing:** variable replacement happens before the XML is parsed, so
-  defaults and replacement fragments must produce valid XML in their final
-  position.
+  defaults, replacement fragments and the content of XML files used as
+  variable values must produce valid XML in their final position.
 - **Saving:** serialization emits the current object state; variable defaults
   and declarations are not preserved in the generated XML.
 

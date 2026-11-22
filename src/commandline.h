@@ -311,28 +311,25 @@ void load_commandline(T& t, int argc, char** argv, const std::string& name = "")
             //If they ask for help, then print this help and go on (maybe there are more loads)
         } 
     } 
-        
-    std::ostringstream xml;
-    for (int i = 1; i<argc; ++i) {
-        std::string arg(argv[i]);
-        if ((arg.size()>4) && (arg.substr(arg.length()-4,4) == ".xml")) {
-            std::ifstream in(arg);
-            if (in.is_open()) {
-                xml<<in.rdbuf();
-            }
-        }
-    }
-    std::string xmlstring = xml.str();
+
     std::list<Default> variables;
-    if (!xmlstring.empty()) {
-        for (int j = 1; j<argc; ++j) {
+    for (int j = 1; j<argc; ++j) {
+        if ((std::string(argv[j]).size()>2) && (std::string(argv[j]).substr(0,2) == "--")) {
             auto tokens = tokenize(std::string(argv[j]),std::regex("="));
             if ((tokens.size()>1) && (tokens[0].size()>2)) {
                 variables.push_back(Default(tokens[0].substr(2),tokens[1]));
             }
         }
-        load_xml(t,xmlstring,variables);
-    } 
+    }
+        
+    for (int i = 1; i<argc; ++i) {
+        std::string arg(argv[i]);
+        if ((arg.size()>4) && (arg.substr(arg.length()-4,4) == ".xml") && (arg.substr(0,2) != "--")) {
+            if (!load_xml_file(t,arg,variables)) {
+                std::cerr<<"Could not load xml file "<<arg<<std::endl;
+            }
+        }
+    }
     
     CommandLine<T>::load(t,argc,argv,name);
     if constexpr (has_init_v<T>) t.init();
