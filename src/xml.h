@@ -426,7 +426,7 @@ inline std::tuple<std::string, std::string> split_xml_nodes(const std::string& x
     return {xml_without_tag, xml_with_tag};
 }
 
-std::string replace_variables_in_xml(const std::string& xml, const std::list<Default>& variables = {}, std::string path = "") {
+inline std::string replace_variables_in_xml(const std::string& xml, const std::list<Default>& variables = {}, std::string path = "") {
     auto [copy, copy_defaults] = split_xml_nodes(xml, "default");
     rapidxml::xml_document<> doc_defaults;
     std::list<Default> defaults;
